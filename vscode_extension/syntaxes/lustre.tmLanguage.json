@@ -1,0 +1,27 @@
+{
+  "scopeName": "source.lus",
+  "name": "Lustre",
+  "fileTypes": ["lus"],
+  "patterns": [
+    {
+      "match": "\\b(node|var|let|tel|if|then|else|returns|const|type|when|merge)\\b",
+      "name": "keyword.control.lustre"
+    },
+    {
+      "match": "\\b(true|false)\\b",
+      "name": "constant.language.lustre"
+    },
+    {
+      "match": "--.*$",
+      "name": "comment.line.double-dash.lustre"
+    },
+    {
+      "match": "\\b[0-9]+(\\.[0-9]+)?\\b",
+      "name": "constant.numeric.lustre"
+    },
+    {
+      "match": "\".*?\"",
+      "name": "string.quoted.double.lustre"
+    }
+  ]
+}

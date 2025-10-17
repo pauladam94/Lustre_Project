@@ -1,0 +1,45 @@
+{
+  "name": "lustrels",
+  "displayName": "Lustre Language Support",
+  "description": "VS Code extension providing LSP support for Lustre (.lus) using lustre-lsp",
+  "version": "0.0.1",
+  "publisher": "pauladam",
+  "engines": {
+    "vscode": "^1.105.0"
+  },
+  "categories": ["Programming Languages"],
+  "activationEvents": ["onLanguage:lustre"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "lustre",
+        "aliases": ["Lustre", "lustre"],
+        "extensions": [".lus"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "lustre",
+        "scopeName": "source.lustre",
+        "path": "./syntaxes/lustre.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver-protocol": "^3.17.5"
+  }
+}

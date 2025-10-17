@@ -1,0 +1,12 @@
+[package]
+name = "lustrels"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tower-lsp-server = "0.22.1"
+lsp-types = "0.97.0"
+lustre_analyzer = { path = "../analyzer" }
+tokio = { version = "1.47.1", features = ["full"] }
+# async-std = "1.13.2"
+async-lock = "3.4.1"
