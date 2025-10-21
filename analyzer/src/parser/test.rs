@@ -119,7 +119,7 @@ mod test {
             "
 node f() returns ();
 let
-tel;
+tel
 ",
         );
     }
@@ -133,7 +133,7 @@ tel;
             "
 node f() returns ( b : int );
 let
-tel;
+tel
 ",
         );
     }
@@ -144,7 +144,7 @@ tel;
 node f (a: int) returns ( ) ;
 let
 
-tel ;
+tel
 ",
         );
     }
@@ -155,7 +155,7 @@ tel ;
 node f (a: int) returns ( ) ;
 let
     x = y;
-tel ;
+tel
 ",
         );
     }
@@ -166,7 +166,7 @@ tel ;
 node f (a: int) returns ( ) ;
 let
     x = (y + x);
-tel ;
+tel
 ",
         );
     }
@@ -177,7 +177,7 @@ tel ;
 node f (a: int) returns (b:int) ;
 let
 
-tel ;
+tel
 ",
         );
     }
@@ -188,7 +188,7 @@ tel ;
             "
 node f(i : int) returns (f : float);
 let
-tel;
+tel
 ",
         );
     }
@@ -201,7 +201,7 @@ node f(i : int) returns (f : float);
 let
     a = x * x;
     f = 2;
-tel;
+tel
 ",
         );
     }
@@ -214,12 +214,12 @@ node f(i : int) returns (f : float);
 let
     a = x * x;
     f = 2;
-tel;
+tel
 
 node other_function(i: int, a : int) returns (f: float);
 let b   = x + x;
 c = d;
-tel;
+tel
 ",
         );
     }
@@ -232,19 +232,19 @@ node f(i : int) returns (f : float);
 let
     a = x * x;
     f = 2;
-tel;
+tel
 
 node other_function(i: int, a : int) returns (f: float);
 let b   = x + x;
 c = d;
-tel;
+tel
 
 node while(i : int) returns (g : int, t : int);
 let
     a = x * x;
     f = 2 + 3;
     t = x + x * y + 2;
-tel;
+tel
 ",
         );
     }
@@ -257,19 +257,19 @@ node f(i1 : int, i2 : int, i3 : float, i4 : char) returns (f : float);
 let
     a = x * x;
     f = 2;
-tel;
+tel
 
 node otherfunction(i: int, a : int) returns (f: float);
 let b   = x + x;
 c = d;
-tel;
+tel
 
 node while(i : int) returns (g : int, t : int);
 let
     a = x * x;
     f = 2 + 3;
     t = x + x * y + 2;
-tel;
+tel
 ",
         );
     }
@@ -281,24 +281,24 @@ node f(i1 : int, i2 : int, i3 : float, i4 : char) returns (f : float);
 let
     a = x * x;
     f = 2;
-tel;
+tel
 
 node f(i1 : int, i2 : int, i3 : float, i4 : char) returns (f : float);
 let
     a = x * x;
     f = 2;
-tel;
+tel
 node otherfunction(i: int, a : int) returns (f: float);
 let b   = x + x;
 c = d;
-tel;
+tel
 
 node while(i : int) returns (g : int, t : int);
 let
     a = x * x;
     f = 2 + 3;
     t = x + x * y + 2;
-tel;
+tel
 ",
         );
     }
@@ -310,18 +310,18 @@ node f(i1 : int, i2 : int, i3 : float, i4 : char) returns (f : float);
 let
     a = x * x;
     f = 2;
-tel;
+tel
 
 node f(i1 : int, i2 : int, i3 : float, i4 : char) returns (f : float);
 let
     a = x * x;
     f = 2;
-tel;
+tel
 node fu(i1 : int, i2 : int) returns (f: float);
 let
     a = x * x;
     f = 2;
-tel;
+tel
 ",
         );
     }
@@ -333,14 +333,14 @@ tel;
 node otherfunction(i: int, a : int) returns (f: float);
 let b   = x + x;
 c = d;
-tel;
+tel
 
 node while(i : int) returns (g : int, t : int);
 let
     a = x * x;
     f = 2 + 3;
     t = x + x * y + 2;
-tel;
+tel
 ",
         )
     }
@@ -352,7 +352,7 @@ tel;
 node otherfunction(i: int, a : int) returns (f: float);
 let b   = x + x;
 c = ;
-tel;
+tel
 ",
         )
     }
@@ -363,8 +363,33 @@ tel;
             "
 node ction( returns (f: float);
 let
-tel;
+tel
 ",
+        )
+    }
+    #[test]
+    fn t17() {
+        ok_parse(
+            "
+node f(i : int, i : bool) returns (f: float);
+let
+    a = 1 + 1 + 1 * 1 + 1 + 1 / 1 - abc;
+tel
+",
+        )
+    }
+
+    #[test]
+    fn t18() {
+        ok_parse(
+            "
+node    fgaaaaaaa () returns       (x : int);
+
+let      x = (1 + 1 * (1 + 1)) / 4; tel
+
+
+node   f   () returns (x : int);
+let x = 2; tel",
         )
     }
 }

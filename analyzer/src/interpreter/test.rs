@@ -1,7 +1,7 @@
-use colored::Colorize;
-use lustre_parser::{
+use crate::parser::{
     ast::{Ast, ast},
-    span::Span,
+    span::LSpan,
+    test::ok_parse,
 };
 
 enum Value {}
@@ -20,24 +20,22 @@ pub trait BuildInterpreter {
     fn build_interpreter(&self) -> impl Interpreter;
 }
 
-impl BuildInterpreter for Ast<'_> {
+impl BuildInterpreter for Ast {
     fn build_interpreter(&self) -> impl Interpreter {
         SimpleInterpreter { vars: vec![] }
     }
 }
 
 pub fn ok_interpretation(input: &str) {
-    use lustre_parser::test::ok_parse;
-
     ok_parse(input);
-    let (_, build_ast) = ast(Span::new(input)).unwrap();
+    let (_, build_ast) = ast(LSpan::new(input)).unwrap();
 
     // let interpreter = build_ast.interpret();
 }
 
 #[cfg(test)]
 mod test {
-    use crate::test::ok_interpretation;
+    use crate::interpreter::test::ok_interpretation;
 
     #[test]
     fn test_1() {
@@ -47,15 +45,13 @@ node id(x, y : int) returns (a, b : int);
 let
     a = x;
     b = y;
-tel;
+tel
 
 #[test]
-node has_been_true() returns ();
+node has_been_true() returns (z: bool);
 let
-    has_been_true(
-        [false, true, false, false, false, true],
-    ) ==
-        [];        
+    z = has_been_true([false, true, true]) == [false, true, true];        
+tel
         ",
         );
     }

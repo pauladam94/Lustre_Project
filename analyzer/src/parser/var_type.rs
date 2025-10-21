@@ -8,21 +8,25 @@ use crate::parser::white_space::ws;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum VarType {
-    Str,
+    Pre(Box<VarType>),
     Int,
     Float,
+    Bool,
     Char,
     String,
+    Array(Box<VarType>),
 }
 
 impl std::fmt::Display for VarType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            VarType::Str => write!(f, "str"),
             VarType::Int => write!(f, "int"),
             VarType::Float => write!(f, "float"),
+            VarType::Bool => write!(f, "bool"),
             VarType::Char => write!(f, "char"),
             VarType::String => write!(f, "string"),
+            VarType::Pre(var_type) => write!(f, "pre {}", var_type),
+            VarType::Array(var_type) => write!(f, "[{}]", var_type),
         }
     }
 }
@@ -30,9 +34,9 @@ impl std::fmt::Display for VarType {
 pub(crate) fn var_type(input: LSpan) -> IResult<LSpan, VarType> {
     ws(alt((
         value(VarType::Int, tag("int")),
-        value(VarType::Str, tag("str")),
         value(VarType::Float, alt((tag("float"), tag("real")))),
         value(VarType::Char, tag("char")),
+        value(VarType::Bool, tag("bool")),
         value(VarType::String, tag("string")),
     )))
     .parse(input)

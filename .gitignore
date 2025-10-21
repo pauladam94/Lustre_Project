@@ -32,3 +32,5 @@ target
 /vscode_extension/server/
 /vscode_extension/package-lock.json
 
+/vscode_extension/lustre-vscode.vsix
+/vscode_extension/lustre-vscode-0.0.1.vsix

@@ -1,9 +1,9 @@
+use crate::parser::equation::equations;
 use crate::parser::expression::Expr;
+use crate::parser::ftag::Tag;
 use crate::parser::literal::identifier;
-use crate::parser::parser::Ident;
-use crate::parser::parser::Tag;
 use crate::parser::parser::args;
-use crate::parser::parser::let_binding;
+use crate::parser::span::Ident;
 use crate::parser::span::LSpan;
 use crate::parser::span::Span;
 use crate::parser::span_eq::SpanEq;
@@ -17,6 +17,11 @@ use nom::sequence::terminated;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Node {
+    pub(crate) span_node: Span,
+    pub(crate) span_returns: Span,
+    pub(crate) span_let: Span,
+    pub(crate) span_tel: Span,
+
     pub(crate) tag: Option<Tag>,
     pub(crate) name: Span,
     pub(crate) inputs: Vec<(Ident, VarType)>,
@@ -85,27 +90,39 @@ pub(crate) fn node(input: LSpan) -> IResult<LSpan, Node> {
     (
         terminated(
             (
-                delimited(
-                    ws(tag("node")),
-                    (
-                        ws(identifier),
-                        delimited(ws(tag("(")), ws(args), ws(tag(")"))),
-                    ),
-                    ws(tag("returns")),
-                ),
+                ws(tag("node").map(|s| Span::new(s))),
+                ws(identifier),
+                delimited(ws(tag("(")), ws(args), ws(tag(")"))),
+                ws(tag("returns").map(|s| Span::new(s))),
                 delimited(ws(tag("(")), ws(args), ws(tag(")"))),
             ),
             ws(tag(";")),
         ),
-        ws(let_binding),
+        (
+            ws(tag("let").map(|s| Span::new(s))),
+            ws(equations),
+            ws(tag("tel").map(|s| Span::new(s))),
+        ),
     )
-        .map(|(((name, inputs), outputs), let_bindings)| Node {
-            tag: None,
-            name: name,
-            vars: vec![],
-            inputs,
-            outputs,
-            let_bindings,
-        })
+        .map(
+            |(
+                (span_node, name, inputs, span_returns, outputs),
+                (span_let, let_bindings, span_tel),
+            )| {
+                Node {
+                    tag: None,
+                    name,
+                    vars: vec![],
+                    inputs,
+                    outputs,
+                    let_bindings,
+
+                    span_node,
+                    span_returns,
+                    span_let,
+                    span_tel,
+                }
+            },
+        )
         .parse(input)
 }

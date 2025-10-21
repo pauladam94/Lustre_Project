@@ -1,12 +1,15 @@
+use crate::{diagnostic::ToRange, token_type::TokenType};
+use lsp_types::{Position, Range, SemanticToken};
 use nom_locate::LocatedSpan;
-
 pub type LSpan<'a> = LocatedSpan<&'a str>;
 
-#[derive(Debug, PartialEq, Clone, Default)]
+pub(crate) type Ident = Span;
+
+#[derive(Debug, Clone, Default, Eq)]
 pub struct Span {
     /// The offset represents the position of the fragment relatively to
     /// the input of the parser. It starts at offset 0.
-    offset: usize,
+    column: usize,
     /// The line number of the fragment relatively to the input of the
     /// parser. It starts at line 1.
     line: u32,
@@ -15,10 +18,49 @@ pub struct Span {
     fragment: String,
 }
 
+impl std::hash::Hash for Span {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.fragment.hash(state);
+    }
+}
+impl PartialEq for Span {
+    fn eq(&self, other: &Self) -> bool {
+        self.fragment == other.fragment
+    }
+}
+
+impl ToRange for &Span {
+    fn to_range(&self) -> Range {
+        Range {
+            start: Position {
+                line: self.line - 1,
+                character: self.column as u32 - 1,
+            },
+            // TODO Support for multiline Span, or not ?
+            end: Position {
+                line: self.line - 1,
+                character: (self.column + self.fragment.len()) as u32 - 1,
+            },
+        }
+    }
+}
+
+impl Span {
+    pub fn to_semantic_token(&self, token_type: TokenType) -> SemanticToken {
+        SemanticToken {
+            delta_line: self.location_line() - 1,
+            delta_start: self.get_column() as u32 - 1,
+            length: self.fragment().len() as u32,
+            token_type: token_type as u32,
+            token_modifiers_bitset: 0,
+        }
+    }
+}
+
 impl Span {
     pub fn new(input: LSpan) -> Self {
         Self {
-            offset: input.location_offset(),
+            column: input.get_column(),
             line: input.location_line(),
             fragment: input.fragment().to_string(),
         }
@@ -29,8 +71,8 @@ impl Span {
     pub fn location_line(&self) -> u32 {
         self.line
     }
-    pub fn location_offset(&self) -> usize {
-        self.offset
+    pub fn get_column(&self) -> usize {
+        self.column
     }
 }
 

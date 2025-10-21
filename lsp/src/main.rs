@@ -1,13 +1,16 @@
 use async_lock::RwLock;
 use lsp_types::{
-    Diagnostic, DiagnosticOptions, DiagnosticServerCapabilities,
-    DiagnosticSeverity, DocumentDiagnosticParams,
+    DiagnosticOptions, DiagnosticServerCapabilities, DocumentDiagnosticParams,
     DocumentDiagnosticReportResult, DocumentFormattingParams,
     DocumentHighlight, DocumentHighlightOptions, DocumentHighlightParams,
     InitializeParams, InitializeResult, InitializedParams, MessageType, OneOf,
-    ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind,
-    TextEdit, WorkDoneProgressOptions,
+    SemanticTokenModifier, SemanticTokenType, SemanticTokensFullOptions,
+    SemanticTokensLegend, SemanticTokensOptions, SemanticTokensParams,
+    SemanticTokensResult, SemanticTokensServerCapabilities, ServerCapabilities,
+    TextDocumentSyncCapability, TextDocumentSyncKind, TextEdit,
+    WorkDoneProgressOptions,
 };
+use lustre_analyzer::token_type::TokenType;
 use lustrels::data::Data;
 use tower_lsp_server::jsonrpc::Result;
 use tower_lsp_server::{Client, LanguageServer, LspService, Server};
@@ -52,6 +55,24 @@ impl LanguageServer for Backend {
                         },
                     }),
                 ),
+                semantic_tokens_provider: Some(
+                    SemanticTokensServerCapabilities::SemanticTokensOptions(
+                        SemanticTokensOptions {
+                            work_done_progress_options:
+                                WorkDoneProgressOptions {
+                                    work_done_progress: None,
+                                },
+                            legend: SemanticTokensLegend {
+                                token_types: TokenType::to_vec(),
+                                token_modifiers: vec![
+                                    SemanticTokenModifier::DECLARATION,
+                                ],
+                            },
+                            range: Some(false),
+                            full: Some(SemanticTokensFullOptions::Bool(true)),
+                        },
+                    ),
+                ),
                 ..Default::default()
             },
             ..Default::default()
@@ -77,23 +98,30 @@ impl LanguageServer for Backend {
     }
     async fn formatting(
         &self,
-        params: DocumentFormattingParams,
+        _: DocumentFormattingParams,
     ) -> Result<Option<Vec<TextEdit>>> {
         self.data.read().await.formatting()
     }
 
     async fn document_highlight(
         &self,
-        params: DocumentHighlightParams,
+        _: DocumentHighlightParams,
     ) -> Result<Option<Vec<DocumentHighlight>>> {
         self.data.read().await.document_hightlight()
     }
 
     async fn diagnostic(
         &self,
-        params: DocumentDiagnosticParams,
+        _: DocumentDiagnosticParams,
     ) -> Result<DocumentDiagnosticReportResult> {
         self.data.read().await.diagnostic()
+    }
+
+    async fn semantic_tokens_full(
+        &self,
+        _: SemanticTokensParams,
+    ) -> Result<Option<SemanticTokensResult>> {
+        self.data.read().await.semantic_tokens_full()
     }
 }
 

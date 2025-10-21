@@ -1,5 +1,4 @@
 use lsp_types::Diagnostic;
-use lsp_types::DiagnosticSeverity;
 use lsp_types::DocumentDiagnosticReport;
 use lsp_types::DocumentDiagnosticReportResult;
 use lsp_types::DocumentHighlight;
@@ -7,6 +6,8 @@ use lsp_types::FullDocumentDiagnosticReport;
 use lsp_types::Position;
 use lsp_types::Range;
 use lsp_types::RelatedFullDocumentDiagnosticReport;
+use lsp_types::SemanticTokens;
+use lsp_types::SemanticTokensResult;
 use lsp_types::TextEdit;
 use lustre_analyzer::parser::ast::Ast;
 use lustre_analyzer::parser::parser::lustre_parse;
@@ -16,18 +17,19 @@ use tower_lsp_server::jsonrpc::Result;
 pub struct Data {
     text: String,
     parse: std::result::Result<Ast, Vec<Diagnostic>>,
-    type_check: Option<Vec<Diagnostic>>,
-    test_check: Option<Vec<Diagnostic>>,
+    check: Vec<Diagnostic>,
+    test: Vec<Diagnostic>,
 }
 impl Data {
     pub fn update_text(&mut self, s: String) {
         self.text = s;
         self.parse = lustre_parse(&self.text);
-        if self.parse.is_err() {
-            return;
+        match &self.parse {
+            Ok(ast) => {
+                self.check = ast.check();
+            }
+            Err(_) => {}
         }
-
-        // self.type_check = self.ast.type_check();
     }
     pub fn formatting(&self) -> Result<Option<Vec<TextEdit>>> {
         let mut text_edits: Vec<TextEdit> = self
@@ -67,10 +69,13 @@ impl Data {
     }
     pub fn diagnostic(&self) -> Result<DocumentDiagnosticReportResult> {
         let diags = match &self.parse {
-            Ok(ast) => match &self.type_check {
-                Some(d) => d.clone(),
-                None => vec![],
-            },
+            Ok(_) => {
+                if !self.test.is_empty() {
+                    self.test.clone()
+                } else {
+                    self.check.clone()
+                }
+            }
             Err(d) => d.clone(),
         };
 
@@ -87,6 +92,15 @@ impl Data {
             ),
         ))
     }
+    pub fn semantic_tokens_full(&self) -> Result<Option<SemanticTokensResult>> {
+        match &self.parse {
+            Ok(ast) => Ok(Some(SemanticTokensResult::Tokens(SemanticTokens {
+                result_id: None,
+                data: ast.semantic_tokens_full(),
+            }))),
+            Err(_) => Ok(None),
+        }
+    }
 }
 
 impl std::default::Default for Data {
@@ -94,8 +108,8 @@ impl std::default::Default for Data {
         Self {
             text: Default::default(),
             parse: Err(vec![]),
-            type_check: None,
-            test_check: None,
+            check: vec![],
+            test: vec![],
         }
     }
 }

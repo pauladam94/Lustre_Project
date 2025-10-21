@@ -1,32 +1,29 @@
-use crate::parser::{
-    ast::Ast,
-    expression::{BinOp, Expr, UnaryOp},
-    literal::Literal,
-    node::Node,
-    parser::Tag,
-    span::{LSpan, Span},
-    var_type::VarType,
+use crate::{
+    diagnostic::ToRange,
+    parser::{
+        ast::Ast, expression::{BinOp, Expr, UnaryOp}, ftag::Tag, literal::Literal, node::Node, span::Span, var_type::VarType
+    },
+    token_type::TokenType,
 };
-use lsp_types::{DocumentHighlight, Position, Range};
+use lsp_types::{
+    DocumentHighlight, DocumentHighlightKind, Position, Range, SemanticToken,
+};
 
 pub(crate) trait Visitor {
-    fn visit_bin_op(&mut self, x: &BinOp);
-    fn visit_unary_op(&mut self, x: &UnaryOp);
+    fn visit_bin_op(&mut self, x: &BinOp) {}
+    fn visit_unary_op(&mut self, x: &UnaryOp) {}
 
-    fn visit_span(&mut self, x: &Span);
+    fn visit_span(&mut self, x: &Span) {}
 
     fn visit_literal(&mut self, x: &Literal) {
         match x {
-            Literal::Ident(span) => {
-                self.visit_span(span);
-            }
             Literal::Integer(_) => {}
             Literal::Float(_) => {}
+            Literal::Bool(_) => {}
         }
     }
-    fn visit_tag(&mut self, x: &Tag) {}
-
-    fn visit_var_type(&mut self, x: &VarType) {}
+    fn visit_tag(&mut self, _: &Tag) {}
+    fn visit_var_type(&mut self, _: &VarType) {}
 
     fn visit_expr(&mut self, x: &Expr) {
         match x {
@@ -40,7 +37,14 @@ pub(crate) trait Visitor {
                 self.visit_unary_op(op);
                 self.visit_expr(rhs);
             }
-            Expr::Array { arr } => arr.iter().for_each(|x| self.visit_expr(x)),
+            Expr::Array(arr) => arr.iter().for_each(|x| self.visit_expr(x)),
+            Expr::FCall { name, args } => {
+                self.visit_span(name);
+                args.iter().for_each(|e| self.visit_expr(e));
+            }
+            Expr::Variable(s) => {
+                self.visit_span(s);
+            }
         }
     }
 
@@ -81,22 +85,96 @@ pub(crate) trait Visitor {
 pub(crate) type DocumentHighlightVisitor = Vec<DocumentHighlight>;
 
 impl Visitor for DocumentHighlightVisitor {
-    fn visit_bin_op(&mut self, x: &BinOp) {}
-    fn visit_unary_op(&mut self, x: &UnaryOp) {}
+    fn visit_bin_op(&mut self, _: &BinOp) {}
+    fn visit_unary_op(&mut self, _: &UnaryOp) {}
 
     fn visit_span(&mut self, x: &Span) {
         self.push(DocumentHighlight {
-            range: Range {
-                start: Position {
-                    line: x.location_line(),
-                    character: 0,
-                },
-                end: Position {
-                    line: x.location_line(),
-                    character: 0 + x.fragment().len() as u32,
-                },
-            },
-            kind: None,
+            range: x.to_range(),
+            kind: Some(DocumentHighlightKind::TEXT),
         })
+    }
+}
+
+pub(crate) struct SemanticTokenVisitor {
+    tokens: Vec<SemanticToken>,
+    current_type: Option<u32>,
+}
+
+impl SemanticTokenVisitor {
+    fn push(&mut self, token: SemanticToken) {
+        self.tokens.push(token);
+    }
+    fn compile_tokens(&mut self) {
+        for i in (0..self.tokens.len()).rev() {
+            let current = self.tokens[i];
+            match self.tokens.get(i - 1) {
+                Some(last) => {
+                    self.tokens[i] = SemanticToken {
+                        delta_line: current.delta_line - last.delta_line,
+                        delta_start: if current.delta_line == last.delta_line {
+                            current.delta_start - last.delta_start
+                        } else {
+                            current.delta_start
+                        },
+                        length: current.length,
+                        token_type: current.token_type,
+                        token_modifiers_bitset: current.token_modifiers_bitset,
+                    }
+                }
+                None => {}
+            }
+        }
+    }
+    pub(crate) fn get_tokens(self) -> Vec<SemanticToken> {
+        self.tokens
+    }
+}
+
+impl SemanticTokenVisitor {
+    pub(crate) fn new() -> Self {
+        Self {
+            tokens: vec![],
+            current_type: None,
+        }
+    }
+}
+
+impl Visitor for SemanticTokenVisitor {
+    fn visit_var_type(&mut self, t: &VarType) {}
+    fn visit_node(&mut self, x: &Node) {
+        self.push(x.span_node.to_semantic_token(TokenType::Keyword));
+        if let Some(t) = &x.tag {
+            self.visit_tag(&t)
+        }
+        self.visit_span(&x.name);
+        for (name, t) in x.inputs.iter() {
+            self.visit_span(name);
+            self.visit_var_type(t)
+        }
+
+        self.push(x.span_returns.to_semantic_token(TokenType::Keyword));
+        for (name, t) in x.outputs.iter() {
+            self.visit_span(name);
+            self.visit_var_type(t)
+        }
+        for (name, t) in x.vars.iter() {
+            self.visit_span(name);
+            self.visit_var_type(t)
+        }
+
+        self.push(x.span_let.to_semantic_token(TokenType::Keyword));
+        for (name, t) in x.let_bindings.iter() {
+            self.visit_span(name);
+            self.visit_expr(t)
+        }
+        self.push(x.span_tel.to_semantic_token(TokenType::Keyword));
+    }
+    fn visit_span(&mut self, x: &Span) {
+        self.push(x.to_semantic_token(TokenType::Variable));
+    }
+    fn walk(&mut self, ast: &Ast) {
+        self.visit_ast(ast);
+        self.compile_tokens();
     }
 }

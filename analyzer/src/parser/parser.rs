@@ -1,7 +1,7 @@
 use crate::parser::ast::{Ast, ast};
 use crate::parser::expression::{Expr, expression};
 use crate::parser::literal::{Literal, identifier};
-use crate::parser::span::{LSpan, Span};
+use crate::parser::span::{Ident, LSpan, Span};
 use crate::parser::var_type::{VarType, var_type};
 use crate::parser::white_space::ws;
 use lsp_types::{Diagnostic, DiagnosticSeverity, Position, Range};
@@ -15,68 +15,28 @@ use nom::{
     sequence::{separated_pair, terminated},
 };
 
-#[derive(Clone, Debug, PartialEq)]
-pub(crate) enum Tag {
-    Test,
-}
 
-impl std::fmt::Display for Tag {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Tag::Test => write!(f, "test"),
-        }
-    }
-}
 
-pub(crate) type Ident = Span;
 
-pub(crate) fn blit(s: Span) -> Box<Expr> {
-    Box::new(Expr::Lit(Literal::Ident(s)))
-}
-pub(crate) fn lit(s: Span) -> Expr {
-    Expr::Lit(Literal::Ident(s))
-}
-
-pub(crate) fn equation(input: LSpan) -> IResult<LSpan, (Ident, Expr)> {
-    separated_pair(ws(identifier), ws(tag("=")), ws(expression)).parse(input)
-}
-
-pub(crate) fn let_binding(input: LSpan) -> IResult<LSpan, Vec<(Ident, Expr)>> {
-    delimited(
-        ws(tag("let")),
-        fold(
-            0..,
-            terminated(ws(equation), ws(tag(";"))),
-            // preallocates a vector of the max size
-            || Vec::new(),
-            |mut acc: Vec<_>, item| {
-                acc.push(item);
-                acc
-            },
-        ),
-        ws(tag("tel")),
-    )
-    .parse(input)
-}
 
 fn arg(input: LSpan) -> IResult<LSpan, (Ident, VarType)> {
     separated_pair(ws(identifier), ws(tag(":")), ws(var_type)).parse(input)
 }
 
 pub(crate) fn array(input: LSpan) -> IResult<LSpan, Vec<Expr>> {
-    (
-        delimited(
-            ws(tag("[")),
-            many0(terminated(expression, ws(tag(",")))),
-            ws(tag("]")),
+    delimited(
+        ws(tag("[")),
+        terminated(
+            (many0(terminated(expression, ws(tag(",")))), ws(expression)),
+            opt(ws(tag(","))),
         ),
-        expression,
+        ws(tag("]")),
     )
-        .map(|(mut x, l)| {
-            x.push(l);
-            x
-        })
-        .parse(input)
+    .map(|(mut x, l)| {
+        x.push(l);
+        x
+    })
+    .parse(input)
 }
 
 pub(crate) fn args(input: LSpan) -> IResult<LSpan, Vec<(Ident, VarType)>> {

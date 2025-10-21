@@ -1,5 +1,9 @@
+use crate::diagnostic::ToRange;
+use crate::parser::expression::Expr;
+use crate::parser::parser::array;
 use crate::parser::span::LSpan;
 use crate::parser::span::Span;
+use lsp_types::Range;
 use nom::IResult;
 use nom::Parser;
 use nom::branch::alt;
@@ -8,6 +12,7 @@ use nom::character::complete::alpha1;
 use nom::character::complete::alphanumeric1;
 use nom::character::complete::digit1;
 use nom::combinator::recognize;
+use nom::combinator::value;
 use nom::multi::many0;
 use nom::multi::many0_count;
 use nom::multi::many1;
@@ -20,19 +25,37 @@ use nom::{
     sequence::preceded,
 };
 
-#[derive(Clone, Debug, PartialEq)]
-pub(crate) enum Literal {
-    Ident(Span),
+#[derive(Clone, Debug, PartialEq, Copy)]
+pub(crate) enum Value {
     Integer(i64),
     Float(f64),
+    Bool(bool),
+}
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct TestLiteral {
+    txt: Span,
+    val: Value,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum Literal {
+    Integer(i64),
+    Float(f64),
+    Bool(bool),
+}
+
+impl ToRange for Literal {
+    fn to_range(&self) -> Range {
+        todo!()
+    }
 }
 
 impl std::fmt::Display for Literal {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Literal::Ident(s) => write!(f, "{s}"),
             Literal::Integer(i) => write!(f, "{i}"),
             Literal::Float(fl) => write!(f, "{fl}"),
+            Literal::Bool(b) => write!(f, "{b}"),
         }
     }
 }
@@ -52,6 +75,9 @@ pub(crate) fn integer(input: LSpan) -> IResult<LSpan, i64> {
         .parse(input)
 }
 
+fn bool(input: LSpan) -> IResult<LSpan, bool> {
+    alt((value(true, tag("true")), value(false, tag("false")))).parse(input)
+}
 fn decimal(input: LSpan) -> IResult<LSpan, LSpan> {
     recognize(many1(terminated(one_of("0123456789"), many0(char('_')))))
         .parse(input)
@@ -78,11 +104,12 @@ fn float(input: LSpan) -> IResult<LSpan, f64> {
     .parse(input)
 }
 
-pub(crate) fn literal<'a>(input: LSpan) -> IResult<LSpan, Literal> {
+pub(crate) fn literal(input: LSpan) -> IResult<LSpan, Literal> {
     alt((
         float.map(|f| Literal::Float(f)),
         integer.map(|i| Literal::Integer(i)),
-        identifier.map(|s| Literal::Ident(s)),
+        bool.map(|b| Literal::Bool(b)),
+        // Identifier is last to let keyword before (such as 'true' or 'false')
     ))
     .parse(input)
 }

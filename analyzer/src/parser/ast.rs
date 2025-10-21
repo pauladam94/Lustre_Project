@@ -1,14 +1,14 @@
-use lsp_types::{DocumentHighlight, Position, Range, TextEdit};
-use nom::IResult;
-use nom::combinator::all_consuming;
-use nom::multi::many0;
-use nom::sequence::terminated;
-use nom::{Parser, bytes::complete::tag};
-
 use crate::parser::node::{Node, node};
 use crate::parser::span::LSpan;
-use crate::parser::visitor::{DocumentHighlightVisitor, Visitor};
+use crate::parser::visitor::{
+    DocumentHighlightVisitor, SemanticTokenVisitor, Visitor,
+};
 use crate::parser::white_space::ws;
+use lsp_types::{DocumentHighlight, Position, Range, SemanticToken, TextEdit};
+use nom::IResult;
+use nom::Parser;
+use nom::combinator::all_consuming;
+use nom::multi::many0;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Ast {
@@ -18,9 +18,11 @@ pub struct Ast {
 impl std::fmt::Display for Ast {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for (i, node) in self.nodes.iter().enumerate() {
-            write!(f, "{node};")?;
+            write!(f, "{node}")?;
             if i != self.nodes.len() - 1 {
                 write!(f, "\n\n")?;
+            } else {
+                write!(f, "\n")?;
             }
         }
         Ok(())
@@ -53,10 +55,15 @@ impl Ast {
         visitor.walk(self);
         visitor
     }
+    pub fn semantic_tokens_full(&self) -> Vec<SemanticToken> {
+        let mut visitor = SemanticTokenVisitor::new();
+        visitor.walk(self);
+        visitor.get_tokens()
+    }
 }
 
 pub fn ast(input: LSpan) -> IResult<LSpan, Ast> {
-    all_consuming(many0(terminated(ws(node), ws(tag(";")))))
+    all_consuming(many0(ws(node)))
         .map(|n| Ast { nodes: n })
         .parse(input)
 }

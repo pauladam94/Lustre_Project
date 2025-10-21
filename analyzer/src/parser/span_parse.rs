@@ -1,5 +1,5 @@
-use nom::IResult;
 use crate::parser::span::LSpan;
+use nom::IResult;
 
 pub trait SpanParse
 where

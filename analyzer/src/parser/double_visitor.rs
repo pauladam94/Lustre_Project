@@ -1,11 +1,5 @@
 use crate::parser::{
-    ast::Ast,
-    expression::{BinOp, Expr},
-    literal::Literal,
-    node::Node,
-    parser::Tag,
-    span::Span,
-    var_type::VarType,
+    ast::Ast, expression::{BinOp, Expr}, ftag::Tag, literal::Literal, node::Node, span::Span, var_type::VarType
 };
 use colored::Colorize;
 
@@ -75,14 +69,14 @@ impl DoubleTogetherVisitor for ShallowEq {
 
     fn visit_literal(&mut self, x1: &Literal, x2: &Literal) {
         match (x1, x2) {
-            (Literal::Ident(s1), Literal::Ident(s2)) => {
-                self.visit_span(s1, s2);
-            }
             (Literal::Integer(i1), Literal::Integer(i2)) => {
                 self.and(i1 == i2);
             }
             (Literal::Float(f1), Literal::Float(f2)) => {
                 self.and(f1 == f2);
+            }
+            (Literal::Bool(b1), Literal::Bool(b2)) => {
+                self.and(b1 == b2);
             }
             (_, _) => {
                 self.set(false);
