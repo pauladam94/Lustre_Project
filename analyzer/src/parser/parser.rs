@@ -15,10 +15,6 @@ use nom::{
     sequence::{separated_pair, terminated},
 };
 
-
-
-
-
 fn arg(input: LSpan) -> IResult<LSpan, (Ident, VarType)> {
     separated_pair(ws(identifier), ws(tag(":")), ws(var_type)).parse(input)
 }

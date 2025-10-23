@@ -1,5 +1,11 @@
 use crate::parser::{
-    ast::Ast, expression::{BinOp, Expr}, ftag::Tag, literal::Literal, node::Node, span::Span, var_type::VarType
+    ast::Ast,
+    expression::{BinOp, Expr},
+    ftag::Tag,
+    literal::Literal,
+    node::Node,
+    span::Span,
+    var_type::VarType,
 };
 use colored::Colorize;
 

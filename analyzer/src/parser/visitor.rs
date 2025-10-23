@@ -1,7 +1,13 @@
 use crate::{
     diagnostic::ToRange,
     parser::{
-        ast::Ast, expression::{BinOp, Expr, UnaryOp}, ftag::Tag, literal::Literal, node::Node, span::Span, var_type::VarType
+        ast::Ast,
+        expression::{BinOp, Expr, UnaryOp},
+        ftag::Tag,
+        literal::Literal,
+        node::Node,
+        span::Span,
+        var_type::VarType,
     },
     token_type::TokenType,
 };

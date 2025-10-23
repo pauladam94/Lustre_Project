@@ -2,13 +2,13 @@
 
 // Parsers
 pub(crate) mod expression;
+pub(crate) mod equation;
+pub(crate) mod ftag;
 pub(crate) mod func_call;
 pub(crate) mod literal;
 pub(crate) mod node;
 pub(crate) mod var_type;
 pub(crate) mod white_space;
-pub(crate) mod ftag;
-pub(crate) mod equation;
 
 pub mod span;
 

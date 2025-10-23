@@ -1,6 +1,7 @@
 use crate::{diagnostic::ToRange, token_type::TokenType};
 use lsp_types::{Position, Range, SemanticToken};
 use nom_locate::LocatedSpan;
+
 pub type LSpan<'a> = LocatedSpan<&'a str>;
 
 pub(crate) type Ident = Span;

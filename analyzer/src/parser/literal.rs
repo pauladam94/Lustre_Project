@@ -1,6 +1,4 @@
 use crate::diagnostic::ToRange;
-use crate::parser::expression::Expr;
-use crate::parser::parser::array;
 use crate::parser::span::LSpan;
 use crate::parser::span::Span;
 use lsp_types::Range;
@@ -75,7 +73,7 @@ pub(crate) fn integer(input: LSpan) -> IResult<LSpan, i64> {
         .parse(input)
 }
 
-fn bool(input: LSpan) -> IResult<LSpan, bool> {
+fn bool_parse(input: LSpan) -> IResult<LSpan, bool> {
     alt((value(true, tag("true")), value(false, tag("false")))).parse(input)
 }
 fn decimal(input: LSpan) -> IResult<LSpan, LSpan> {
@@ -108,8 +106,79 @@ pub(crate) fn literal(input: LSpan) -> IResult<LSpan, Literal> {
     alt((
         float.map(|f| Literal::Float(f)),
         integer.map(|i| Literal::Integer(i)),
-        bool.map(|b| Literal::Bool(b)),
-        // Identifier is last to let keyword before (such as 'true' or 'false')
+        bool_parse.map(|b| Literal::Bool(b)),
     ))
     .parse(input)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::parser::{
+        literal::{bool_parse, identifier, integer, literal},
+        test::{error_test, ok_test},
+        white_space::ws,
+    };
+
+    #[test]
+    fn basic_identifier_0() {
+        ok_test(identifier, "asvb");
+        // ok_test(identifier, "a2_b2");
+        // ok_test(identifier, "a_cjdncjdncdj");
+        // error_test(identifier, "2a_c");
+        // error_test(identifier, "_a_cjncdj");
+        // error_test(identifier, "124a_cdj");
+    }
+    #[test]
+    fn basic_identifier_2() {
+        ok_test(identifier, "asvb");
+        ok_test(identifier, "a2_b2");
+        ok_test(identifier, "a_cjdncjdncdj");
+        error_test(identifier, "2a_c");
+        error_test(identifier, "_a_cjncdj");
+        error_test(identifier, "124a_cdj");
+    }
+    #[test]
+    fn basic_integer() {
+        ok_test(integer, "23");
+        ok_test(integer, "23232392439832");
+        error_test(integer, "?!!2134");
+        error_test(integer, "abc2134");
+    }
+
+    #[test]
+    fn basic_bool() {
+        ok_test(bool_parse, "true");
+        ok_test(bool_parse, "false");
+        error_test(bool_parse, "ffalse");
+        error_test(bool_parse, "atrue");
+
+        ok_test(ws(bool_parse), "  true ");
+        ok_test(
+            ws(bool_parse),
+            "
+            false ",
+        );
+        ok_test(ws(bool_parse), " falsefalse");
+        error_test(ws(bool_parse), " tttrue");
+        error_test(ws(bool_parse), "ffalse");
+    }
+
+    #[test]
+    fn bool_literal() {
+        ok_test(ws(literal), "  true ");
+        ok_test(
+            ws(literal),
+            "
+            false ",
+        );
+        ok_test(ws(literal), "falsefalse");
+        error_test(ws(literal), " tttrue");
+        error_test(ws(literal), "ffalse");
+    }
+
+    #[test]
+    fn float_literal() {
+        ok_test(literal, "0.2345");
+        error_test(literal, "abc0.2");
+    }
 }

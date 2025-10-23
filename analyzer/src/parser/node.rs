@@ -126,3 +126,59 @@ pub(crate) fn node(input: LSpan) -> IResult<LSpan, Node> {
         )
         .parse(input)
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::parser::{
+        node::node,
+        test::{error_test, ok_test},
+    };
+
+    #[test]
+    fn empty_node() {
+        ok_test(node, "node f() returns (); let tel");
+        ok_test(
+            node,
+            "node f() returns ();
+            let
+            tel
+        ",
+        );
+        ok_test(
+            node,
+            "
+            node f    () returns (  )  ;
+            let
+
+            tel
+            ",
+        );
+
+        error_test(
+            node,
+            "
+            noe f    () returns (  )  ;
+            let
+
+            tel
+            ",
+        );
+        error_test(
+            node,
+            "node f returns ();
+            let
+            tel",
+        );
+    }
+    #[test]
+    fn one_equation_node() {
+        ok_test(
+            node,
+            "node f() returns ();
+            let
+            x = 4;
+            tel
+            ",
+        );
+    }
+}

@@ -229,3 +229,18 @@ pub(crate) fn expression(input: LSpan) -> IResult<LSpan, Expr> {
         },
     )(input)
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::parser::{
+        expression::expression,
+        test::{error_test, ok_test},
+    };
+
+    #[test]
+    fn basic_addition() {
+        ok_test(expression, "a + 2");
+        ok_test(expression, " abc + 2");
+        error_test(expression, "a + ");
+    }
+}

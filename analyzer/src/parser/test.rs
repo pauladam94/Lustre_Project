@@ -4,6 +4,39 @@ use crate::parser::{
     span::LSpan,
 };
 use colored::Colorize;
+use nom::{Parser, error::ParseError};
+
+pub fn ok_test<'a, O, E: ParseError<LSpan<'a>>, F>(mut f: F, input: &'a str)
+where
+    F: Parser<LSpan<'a>, Output = O, Error = E>,
+    E: std::fmt::Debug,
+{
+    let s = LSpan::new(input);
+    match (&mut f).parse(s) {
+        Ok(_) => {}
+        Err(err) => {
+            println!("{}\n{}", ">> input :".blue(), input);
+            println!("{}\n{:?}", ">> ERROR:".red(), err);
+            assert!(false);
+        }
+    }
+}
+pub fn error_test<'a, O, E: ParseError<LSpan<'a>>, F>(mut f: F, input: &'a str)
+where
+    F: Parser<LSpan<'a>, Output = O, Error = E>,
+    O: std::fmt::Debug,
+{
+    let s = LSpan::new(input);
+    match (&mut f).parse(s) {
+        Ok((rest, output)) => {
+            println!("{}:\n{}", ">> input".blue(), input);
+            println!("{}\n{:?}", ">> output :".red(), output);
+            println!("{}\n{}", ">> rest :".red(), rest);
+            assert!(false);
+        }
+        Err(_) => {}
+    }
+}
 
 pub fn error_parse(input: &str) {
     let span = LSpan::new(input);
