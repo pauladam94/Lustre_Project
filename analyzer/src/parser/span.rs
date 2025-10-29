@@ -29,8 +29,21 @@ impl PartialEq for Span {
         self.fragment == other.fragment
     }
 }
-
-impl ToRange for &Span {
+impl ToRange for LocatedSpan<&str> {
+    fn to_range(&self) -> Range {
+        Range {
+            start: Position {
+                line: self.location_line() - 1,
+                character: self.get_column() as u32 - 1,
+            },
+            end: Position {
+                line: self.location_line() - 1,
+                character: self.get_column() as u32,
+            },
+        }
+    }
+}
+impl ToRange for Span {
     fn to_range(&self) -> Range {
         Range {
             start: Position {

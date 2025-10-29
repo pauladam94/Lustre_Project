@@ -29,3 +29,26 @@ pub(crate) fn func_call(input: LSpan) -> IResult<LSpan, (Span, Vec<Expr>)> {
         .map(|(s, _, args, _)| (s, args))
         .parse(input)
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::parser::{
+        func_call::func_call,
+        test::{error_test, ok_test},
+    };
+
+    #[test]
+    fn empty_call() {
+        ok_test(func_call, "f()");
+        ok_test(func_call, " f ( ) ");
+        error_test(func_call, " f (  ");
+        error_test(func_call, " f  ) ");
+    }
+    #[test]
+    fn two_integers_call() {
+        ok_test(func_call, "f(1, 2)");
+        ok_test(func_call, " f (3345 , 2 ) ");
+        error_test(func_call, " f (2, 1234  ");
+        error_test(func_call, " f 234, 123 ) ");
+    }
+}

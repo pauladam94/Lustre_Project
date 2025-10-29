@@ -9,11 +9,13 @@ use crate::{
         var_type::VarType,
     },
 };
+use indexmap::IndexMap;
 use lsp_types::{Diagnostic, DiagnosticSeverity};
 use std::collections::HashMap;
 
+#[derive(Clone, Debug)]
 struct FunctionType {
-    inputs: HashMap<Ident, VarType>,
+    inputs: IndexMap<Ident, VarType>,
     outputs: HashMap<Ident, VarType>,
     vars: HashMap<Ident, VarType>,
 }
@@ -112,9 +114,60 @@ impl CheckerInfo {
                 }
                 Some(VarType::Array(Box::new(t?)))
             }
-            Expr::FCall { name, args } => {
-                todo!()
-            }
+            Expr::FCall { name, args } => match self.nodes_types.get(name) {
+                Some(ft) => {
+                    let ft = ft.clone();
+                    if ft.inputs.len() != args.len() {
+                        self.push_diagnostic(Diagnostic {
+                            message: format!("Expected {} arguments for function '{}' but got {} arguments.",
+                                ft.inputs.len(),
+                                name,
+                                args.len()
+                            ),
+                            severity: Some(DiagnosticSeverity::ERROR),
+                            range: name.to_range(),
+                            ..Default::default()
+                        });
+                        return None;
+                    }
+                    for (i, (arg, (_, expected_type))) in
+                        args.iter().zip(ft.inputs.iter()).enumerate()
+                    {
+                        match self.get_type_equation(node, arg) {
+                            Some(t) => {
+                                if t != *expected_type {
+                                    self.push_diagnostic(Diagnostic {
+                                        message: format!(
+                                            "{}nd arguments of function {} of type '{}' but expected '{}'",
+                                            i,
+                                            name,
+                                            t,
+                                            expected_type
+                                        ),
+                                        severity: Some(DiagnosticSeverity::ERROR),
+                                        range: name.to_range(),
+                                        ..Default::default()
+                                    });
+                                }
+                            }
+                            None => {
+                                self.push_diagnostic(Diagnostic {
+                                    message: format!("{}nd arguments of function {} does not type check.",
+                                        i,
+                                        name,
+                                    ),
+                                    severity: Some(DiagnosticSeverity::ERROR),
+                                    range: name.to_range(),
+                                    ..Default::default()
+                                });
+                            }
+                        };
+                    }
+                    // TODO List of Types
+                    None
+                }
+                None => todo!(),
+            },
         }
     }
 
@@ -188,8 +241,8 @@ impl CheckerInfo {
                 None => {
                     self.push_diagnostic(Diagnostic {
                         message: format!(
-                            "Error while checking the type of '{}'.",
-                            out,
+                            "Error while checking the type of '{}', expected : '{}'.",
+                            out,      t
                         ),
                         severity: Some(DiagnosticSeverity::ERROR),
                         range: out.to_range(),
@@ -212,7 +265,7 @@ impl CheckerInfo {
     fn get_nodes_types(&mut self, x: &Ast) {
         for node in x.nodes.iter() {
             let mut func = FunctionType {
-                inputs: HashMap::new(),
+                inputs: IndexMap::new(),
                 outputs: HashMap::new(),
                 vars: HashMap::new(),
             };
@@ -244,7 +297,7 @@ impl CheckerInfo {
             for (name, t) in node.vars.iter() {
                 if func.vars.contains_key(name) {
                     self.push_diagnostic(Diagnostic {
-                        message: format!("Output name already used."),
+                        message: format!("Var name already used."),
                         severity: Some(DiagnosticSeverity::ERROR),
                         range: name.to_range(),
                         ..Default::default()
@@ -252,6 +305,17 @@ impl CheckerInfo {
                 } else {
                     func.vars.insert(name.clone(), t.clone());
                 }
+            }
+            if self.nodes_types.contains_key(&node.name) {
+                self.push_diagnostic(Diagnostic {
+                    message: format!(
+                        "Function name '{}' already defined in this file.",
+                        node.name
+                    ),
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    range: node.name.to_range(),
+                    ..Default::default()
+                });
             }
             self.nodes_types.insert(node.name.clone(), func);
         }

@@ -16,7 +16,7 @@ where
         Ok(_) => {}
         Err(err) => {
             println!("{}\n{}", ">> input :".blue(), input);
-            println!("{}\n{:?}", ">> ERROR:".red(), err);
+            println!("{}\n{:#?}", ">> ERROR:".red(), err);
             assert!(false);
         }
     }
@@ -51,13 +51,12 @@ pub fn error_parse(input: &str) {
     }
 }
 
-// #[allow(unused)]
 pub fn ok_parse(input: &str) {
     struct Test {
         name: &'static str,
         passed: bool,
     }
-    println!("\n{}\n{input}", ">> in :".blue());
+    println!("\n{}\n\"{input}\"", ">> in :".blue());
 
     let mut tests = vec![
         Test {
@@ -81,7 +80,7 @@ pub fn ok_parse(input: &str) {
 
     match ast(span) {
         Err(err) => {
-            println!("\n{} parsing of \"in\": {}", "FAILED".red(), err);
+            println!("\n{} parsing of \"in\": {:#?}", "FAILED".red(), err);
         }
         Ok((in_rest, in_parse)) => {
             let in_parse_display = format!("{in_parse}");
@@ -147,7 +146,7 @@ mod test {
     use crate::parser::test::{error_parse, ok_parse};
 
     #[test]
-    fn t1() {
+    fn f_no_args_no_equation_ok() {
         ok_parse(
             "
 node f() returns ();
@@ -157,11 +156,11 @@ tel
         );
     }
     #[test]
-    fn t111() {
+    fn empty_string_ok() {
         ok_parse("");
     }
     #[test]
-    fn t15() {
+    fn t15_ok() {
         ok_parse(
             "
 node f() returns ( b : int );
@@ -171,7 +170,7 @@ tel
         );
     }
     #[test]
-    fn t11() {
+    fn t11_ok() {
         ok_parse(
             "
 node f (a: int) returns ( ) ;
@@ -182,7 +181,7 @@ tel
         );
     }
     #[test]
-    fn t13() {
+    fn t13_ok() {
         ok_parse(
             "
 node f (a: int) returns ( ) ;
@@ -193,7 +192,7 @@ tel
         );
     }
     #[test]
-    fn t14() {
+    fn t14_ok() {
         ok_parse(
             "
 node f (a: int) returns ( ) ;
@@ -204,7 +203,7 @@ tel
         );
     }
     #[test]
-    fn t12() {
+    fn t12_ok() {
         ok_parse(
             "
 node f (a: int) returns (b:int) ;
@@ -216,7 +215,7 @@ tel
     }
 
     #[test]
-    fn t2() {
+    fn t2_ok() {
         ok_parse(
             "
 node f(i : int) returns (f : float);
@@ -227,7 +226,7 @@ tel
     }
 
     #[test]
-    fn t3() {
+    fn t3_ok() {
         ok_parse(
             "
 node f(i : int) returns (f : float);
@@ -240,7 +239,7 @@ tel
     }
 
     #[test]
-    fn t4() {
+    fn t4_ok() {
         ok_parse(
             "
 node f(i : int) returns (f : float);
@@ -258,7 +257,7 @@ tel
     }
 
     #[test]
-    fn t5() {
+    fn t5_ok() {
         ok_parse(
             "
 node f(i : int) returns (f : float);
@@ -283,7 +282,7 @@ tel
     }
 
     #[test]
-    fn t6() {
+    fn t6_ok() {
         ok_parse(
             "
 node f(i1 : int, i2 : int, i3 : float, i4 : char) returns (f : float);
@@ -336,7 +335,7 @@ tel
         );
     }
     #[test]
-    fn t8() {
+    fn t8_ok() {
         ok_parse(
             "
 node f(i1 : int, i2 : int, i3 : float, i4 : char) returns (f : float);
@@ -360,7 +359,7 @@ tel
     }
 
     #[test]
-    fn t9() {
+    fn t9_ok() {
         ok_parse(
             "
 node otherfunction(i: int, a : int) returns (f: float);
@@ -379,7 +378,7 @@ tel
     }
 
     #[test]
-    fn t10() {
+    fn t10_error() {
         error_parse(
             "
 node otherfunction(i: int, a : int) returns (f: float);
@@ -391,7 +390,7 @@ tel
     }
 
     #[test]
-    fn t16() {
+    fn t16_error() {
         error_parse(
             "
 node ction( returns (f: float);
@@ -401,7 +400,7 @@ tel
         )
     }
     #[test]
-    fn t17() {
+    fn t17_ok() {
         ok_parse(
             "
 node f(i : int, i : bool) returns (f: float);
@@ -413,7 +412,7 @@ tel
     }
 
     #[test]
-    fn t18() {
+    fn t18_ok() {
         ok_parse(
             "
 node    fgaaaaaaa () returns       (x : int);

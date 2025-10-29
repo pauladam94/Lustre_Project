@@ -9,6 +9,7 @@ use nom::bytes::tag;
 use nom::character::complete::alpha1;
 use nom::character::complete::alphanumeric1;
 use nom::character::complete::digit1;
+use nom::combinator::complete;
 use nom::combinator::recognize;
 use nom::combinator::value;
 use nom::multi::many0;

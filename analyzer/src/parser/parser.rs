@@ -1,3 +1,4 @@
+use crate::diagnostic::ToRange;
 use crate::parser::ast::{Ast, ast};
 use crate::parser::expression::{Expr, expression};
 use crate::parser::literal::{Literal, identifier};
@@ -11,7 +12,6 @@ use nom::multi::many0;
 use nom::sequence::delimited;
 use nom::{
     IResult, Parser,
-    multi::fold,
     sequence::{separated_pair, terminated},
 };
 
@@ -92,20 +92,11 @@ pub fn lustre_parse(input: &str) -> Result<Ast, Vec<Diagnostic>> {
             nom::Err::Error(nom::error::Error { input, code })
             | nom::Err::Failure(nom::error::Error { input, code }) => {
                 vec![Diagnostic {
-                    range: Range {
-                        start: Position {
-                            line: 0,
-                            character: 0,
-                        },
-                        end: Position {
-                            line: 0,
-                            character: 0,
-                        },
-                    },
+                    range: input.to_range(),
                     severity: Some(DiagnosticSeverity::ERROR),
                     message: format!(
-                        "Parsing Error : at {}{} of kind {:?}",
-                        input.location_offset(),
+                        "Parsing Error : at {}:{} of kind {:?}",
+                        input.get_column(),
                         input.location_line(),
                         code
                     ),

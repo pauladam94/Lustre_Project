@@ -12,8 +12,8 @@ use crate::parser::white_space::ws;
 use nom::IResult;
 use nom::Parser;
 use nom::bytes::complete::tag;
+use nom::combinator::opt;
 use nom::sequence::delimited;
-use nom::sequence::terminated;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Node {
@@ -21,6 +21,7 @@ pub(crate) struct Node {
     pub(crate) span_returns: Span,
     pub(crate) span_let: Span,
     pub(crate) span_tel: Span,
+    pub(crate) span_semicolon: Span,
 
     pub(crate) tag: Option<Tag>,
     pub(crate) name: Span,
@@ -88,15 +89,14 @@ impl SpanEq for Node {
 
 pub(crate) fn node(input: LSpan) -> IResult<LSpan, Node> {
     (
-        terminated(
-            (
-                ws(tag("node").map(|s| Span::new(s))),
-                ws(identifier),
-                delimited(ws(tag("(")), ws(args), ws(tag(")"))),
-                ws(tag("returns").map(|s| Span::new(s))),
-                delimited(ws(tag("(")), ws(args), ws(tag(")"))),
-            ),
-            ws(tag(";")),
+        (
+            opt(ws(tag("#[test]"))).map(|t| t.map(|_| Tag::Test)),
+            ws(tag("node").map(|s| Span::new(s))),
+            ws(identifier),
+            delimited(ws(tag("(")), ws(args), ws(tag(")"))),
+            ws(tag("returns").map(|s| Span::new(s))),
+            delimited(ws(tag("(")), ws(args), ws(tag(")"))),
+            ws(tag(";")).map(|s| Span::new(s)),
         ),
         (
             ws(tag("let").map(|s| Span::new(s))),
@@ -106,11 +106,19 @@ pub(crate) fn node(input: LSpan) -> IResult<LSpan, Node> {
     )
         .map(
             |(
-                (span_node, name, inputs, span_returns, outputs),
+                (
+                    tag,
+                    span_node,
+                    name,
+                    inputs,
+                    span_returns,
+                    outputs,
+                    span_semicolon,
+                ),
                 (span_let, let_bindings, span_tel),
             )| {
                 Node {
-                    tag: None,
+                    tag,
                     name,
                     vars: vec![],
                     inputs,
@@ -119,6 +127,7 @@ pub(crate) fn node(input: LSpan) -> IResult<LSpan, Node> {
 
                     span_node,
                     span_returns,
+                    span_semicolon,
                     span_let,
                     span_tel,
                 }
@@ -139,7 +148,7 @@ mod tests {
         ok_test(node, "node f() returns (); let tel");
         ok_test(
             node,
-            "node f() returns ();
+            "#[test]node f() returns ();
             let
             tel
         ",

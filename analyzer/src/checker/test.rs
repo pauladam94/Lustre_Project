@@ -34,7 +34,7 @@ mod tests {
     use crate::checker::test::{error_check, ok_check};
 
     #[test]
-    fn test1() {
+    fn test1_ok() {
         ok_check(
             "
 node f() returns();
@@ -44,7 +44,7 @@ tel
         )
     }
     #[test]
-    fn test2() {
+    fn test2_ok() {
         ok_check(
             "
 node f(x: int) returns(z: int);
@@ -55,7 +55,7 @@ tel
         )
     }
     #[test]
-    fn test3() {
+    fn test3_error() {
         error_check(
             "
 node f(x: int, x : int) returns(z: int);
@@ -67,7 +67,7 @@ tel
     }
 
     #[test]
-    fn test4() {
+    fn test4_error() {
         error_check(
             "
 node f(x: int) returns(z: int);
@@ -78,7 +78,7 @@ tel
         )
     }
     #[test]
-    fn test5() {
+    fn test5_error() {
         error_check(
             "
 node f(x: int) returns(z: int);
@@ -89,7 +89,7 @@ tel
         )
     }
     #[test]
-    fn test6() {
+    fn test6_error() {
         ok_check(
             "
 node f(x: int) returns(z: int);
@@ -100,7 +100,7 @@ tel
         )
     }
     #[test]
-    fn test7() {
+    fn test7_ok() {
         ok_check(
             "
 node f(x: int) returns(z: int, y: bool);

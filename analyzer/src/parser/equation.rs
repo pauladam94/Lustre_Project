@@ -7,12 +7,18 @@ use crate::parser::{
 use nom::{
     IResult, Parser,
     bytes::tag,
-    multi::{fold, many0},
+    combinator::complete,
+    multi::many0,
     sequence::{separated_pair, terminated},
 };
 
 pub(crate) fn equation(input: LSpan) -> IResult<LSpan, (Ident, Expr)> {
-    separated_pair(ws(identifier), ws(tag("=")), ws(expression)).parse(input)
+    separated_pair(
+        ws(complete(identifier)),
+        ws(complete(tag("="))),
+        ws(expression),
+    )
+    .parse(input)
 }
 
 pub(crate) fn equations(input: LSpan) -> IResult<LSpan, Vec<(Ident, Expr)>> {
