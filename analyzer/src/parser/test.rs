@@ -30,7 +30,7 @@ where
     match (&mut f).parse(s) {
         Ok((rest, output)) => {
             println!("{}:\n{}", ">> input".blue(), input);
-            println!("{}\n{:?}", ">> output :".red(), output);
+            println!("{}\n{:#?}", ">> output :".red(), output);
             println!("{}\n{}", ">> rest :".red(), rest);
             assert!(false);
         }
@@ -107,10 +107,8 @@ pub fn ok_parse(input: &str) {
                     tests[2].passed = shallow_eq.is_eq();
 
                     // in_parse_display_parse == in_parse;
-                    let in_parse_display_parse_display =
-                        format!("{in_parse_display_parse}");
-                    tests[3].passed =
-                        in_parse_display_parse_display == in_parse_display;
+                    let in_parse_display_parse_display = format!("{in_parse_display_parse}");
+                    tests[3].passed = in_parse_display_parse_display == in_parse_display;
 
                     println!(
                         "{}\n{in_parse_display_parse}",
@@ -422,6 +420,69 @@ let      x = (1 + 1 * (1 + 1)) / 4; tel
 
 node   f   () returns (x : int);
 let x = 2; tel",
+        )
+    }
+    #[test]
+    fn func_call_1_ok() {
+        ok_parse(
+            "
+node f(x: int, y: int, z: bool) returns (a : int);
+let
+    a = 12;
+tel
+
+node g() returns (x : int);
+let
+    x = f(1, 2, 3);
+tel",
+        )
+    }
+    #[test]
+    fn func_call_2_ok() {
+        ok_parse(
+            "
+node f(x: int, y: int, z: bool) returns (a : int);
+let
+    a = 12;
+tel
+
+node g() returns (x : int);
+let
+    y = f(x, x, f(1));
+    x = f(1, 2, y);
+tel",
+        )
+    }
+    #[test]
+    fn func_call_1_error() {
+        error_parse(
+            "
+node f(x: int, y: int, z: bool) returns (a : int);
+let
+    a = 12;
+tel
+
+node g() returns (x : int);
+let
+    y = f(x, x, f(1));
+    x = f(1 2 y);
+tel",
+        )
+    }
+    #[test]
+    fn func_call_2_error() {
+        error_parse(
+            "
+node f(x: int, y: int, z: bool) returns (a : int);
+let
+    a = 12;
+tel
+
+node g() returns (x : int);
+let
+    y = f(x, x, f(1);
+    x = f(1, 2, y);
+tel",
         )
     }
 }

@@ -4,10 +4,7 @@ use crate::parser::{
     span::{LSpan, Span},
     white_space::ws,
 };
-use nom::{
-    IResult, Parser, bytes::tag, combinator::opt, multi::many0,
-    sequence::terminated,
-};
+use nom::{IResult, Parser, bytes::tag, combinator::opt, multi::many0, sequence::terminated};
 
 pub(crate) fn func_call(input: LSpan) -> IResult<LSpan, (Span, Vec<Expr>)> {
     (

@@ -2,6 +2,8 @@
 
 // Parsers
 pub(crate) mod expression;
+pub(crate) mod args;
+pub(crate) mod array;
 pub(crate) mod equation;
 pub(crate) mod ftag;
 pub(crate) mod func_call;
@@ -11,8 +13,6 @@ pub(crate) mod var_type;
 pub(crate) mod white_space;
 
 pub mod span;
-
-// test macros
 pub mod test;
 
 // Trait Stuff
@@ -22,4 +22,4 @@ pub(crate) mod span_parse;
 pub mod visitor;
 
 pub mod ast;
-pub mod parser;
+pub mod lustre_parser;

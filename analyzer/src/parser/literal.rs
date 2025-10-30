@@ -1,15 +1,16 @@
 use crate::diagnostic::ToRange;
 use crate::parser::span::LSpan;
 use crate::parser::span::Span;
+use crate::parser::var_type::VarType;
 use lsp_types::Range;
+use nom::bytes::complete::tag;
+use nom::character::complete::multispace0;
 use nom::IResult;
 use nom::Parser;
 use nom::branch::alt;
-use nom::bytes::tag;
 use nom::character::complete::alpha1;
 use nom::character::complete::alphanumeric1;
 use nom::character::complete::digit1;
-use nom::combinator::complete;
 use nom::combinator::recognize;
 use nom::combinator::value;
 use nom::multi::many0;
@@ -17,6 +18,7 @@ use nom::multi::many0_count;
 use nom::multi::many1;
 use nom::multi::many1_count;
 use nom::sequence::pair;
+use nom::sequence::separated_pair;
 use nom::sequence::terminated;
 use nom::{
     character::complete::{char, one_of},
@@ -24,37 +26,38 @@ use nom::{
     sequence::preceded,
 };
 
-#[derive(Clone, Debug, PartialEq, Copy)]
-pub(crate) enum Value {
-    Integer(i64),
-    Float(f64),
-    Bool(bool),
-}
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct TestLiteral {
-    txt: Span,
-    val: Value,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub(crate) enum Literal {
+pub enum Value {
+    Unit,
     Integer(i64),
     Float(f64),
     Bool(bool),
 }
 
-impl ToRange for Literal {
+impl Value {
+    pub fn get_type(&self) -> VarType {
+        match self {
+            Value::Unit => VarType::Unit,
+            Value::Integer(_) => VarType::Int,
+            Value::Float(_) => VarType::Float,
+            Value::Bool(_) => VarType::Bool,
+        }
+    }
+}
+
+impl ToRange for Value {
     fn to_range(&self) -> Range {
         todo!()
     }
 }
 
-impl std::fmt::Display for Literal {
+impl std::fmt::Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Literal::Integer(i) => write!(f, "{i}"),
-            Literal::Float(fl) => write!(f, "{fl}"),
-            Literal::Bool(b) => write!(f, "{b}"),
+            Value::Unit => write!(f, "()"),
+            Value::Integer(i) => write!(f, "{i}"),
+            Value::Float(fl) => write!(f, "{fl}"),
+            Value::Bool(b) => write!(f, "{b}"),
         }
     }
 }
@@ -78,8 +81,7 @@ fn bool_parse(input: LSpan) -> IResult<LSpan, bool> {
     alt((value(true, tag("true")), value(false, tag("false")))).parse(input)
 }
 fn decimal(input: LSpan) -> IResult<LSpan, LSpan> {
-    recognize(many1(terminated(one_of("0123456789"), many0(char('_')))))
-        .parse(input)
+    recognize(many1(terminated(one_of("0123456789"), many0(char('_'))))).parse(input)
 }
 
 fn float(input: LSpan) -> IResult<LSpan, f64> {
@@ -103,11 +105,20 @@ fn float(input: LSpan) -> IResult<LSpan, f64> {
     .parse(input)
 }
 
-pub(crate) fn literal(input: LSpan) -> IResult<LSpan, Literal> {
+fn unit(input: LSpan) -> IResult<LSpan, ()> {
+    value((), separated_pair(
+        tag("("),
+        multispace0,
+        tag(")")
+    )).parse(input)
+    // value((), (tag("("), multispace0, tag(")"))).parse(input)
+}
+
+pub(crate) fn literal(input: LSpan) -> IResult<LSpan, Value> {
     alt((
-        float.map(|f| Literal::Float(f)),
-        integer.map(|i| Literal::Integer(i)),
-        bool_parse.map(|b| Literal::Bool(b)),
+        float.map(|f| Value::Float(f)),
+        integer.map(|i| Value::Integer(i)),
+        bool_parse.map(|b| Value::Bool(b)),
     ))
     .parse(input)
 }
@@ -122,7 +133,7 @@ mod tests {
 
     #[test]
     fn basic_identifier_0() {
-        ok_test(identifier, "asvb");
+        ok_test(identifier, "asvb  rest");
         // ok_test(identifier, "a2_b2");
         // ok_test(identifier, "a_cjdncjdncdj");
         // error_test(identifier, "2a_c");
@@ -131,12 +142,12 @@ mod tests {
     }
     #[test]
     fn basic_identifier_2() {
-        ok_test(identifier, "asvb");
-        ok_test(identifier, "a2_b2");
-        ok_test(identifier, "a_cjdncjdncdj");
-        error_test(identifier, "2a_c");
-        error_test(identifier, "_a_cjncdj");
-        error_test(identifier, "124a_cdj");
+        ok_test(identifier, "asvb  rest");
+        ok_test(identifier, "a2_b2 rest");
+        ok_test(identifier, "a_cjdncjdncdj rest");
+        error_test(identifier, "2a_c rest");
+        ok_test(identifier, "_a_cjncdj rest");
+        error_test(identifier, "124a_cdj rest");
     }
     #[test]
     fn basic_integer() {

@@ -1,8 +1,6 @@
 use crate::parser::node::{Node, node};
-use crate::parser::span::LSpan;
-use crate::parser::visitor::{
-    DocumentHighlightVisitor, SemanticTokenVisitor, Visitor,
-};
+use crate::parser::span::{LSpan, Span};
+use crate::parser::visitor::{DocumentHighlightVisitor, SemanticTokenVisitor, Visitor};
 use crate::parser::white_space::ws;
 use lsp_types::{DocumentHighlight, Position, Range, SemanticToken, TextEdit};
 use nom::IResult;
@@ -30,6 +28,12 @@ impl std::fmt::Display for Ast {
 }
 
 impl Ast {
+    pub fn new() -> Self {
+        Self { nodes: vec![] }
+    }
+    pub fn add_node(&mut self, node: Node) {
+        self.nodes.push(node);
+    }
     pub fn text_edit(&self) -> Vec<TextEdit> {
         format!("{}", self)
             .lines()

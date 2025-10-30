@@ -10,7 +10,7 @@ use lsp_types::SemanticTokens;
 use lsp_types::SemanticTokensResult;
 use lsp_types::TextEdit;
 use lustre_analyzer::parser::ast::Ast;
-use lustre_analyzer::parser::parser::lustre_parse;
+use lustre_analyzer::parser::lustre_parser::lustre_parse;
 use tower_lsp_server::jsonrpc::Result;
 
 #[derive(Debug, Clone)]
@@ -59,9 +59,7 @@ impl Data {
             _ => Ok(None),
         }
     }
-    pub fn document_hightlight(
-        &self,
-    ) -> Result<Option<Vec<DocumentHighlight>>> {
+    pub fn document_hightlight(&self) -> Result<Option<Vec<DocumentHighlight>>> {
         match &self.parse {
             Err(_) => Ok(None),
             Ok(ast) => Ok(Some(ast.document_hightlight())),
@@ -80,16 +78,13 @@ impl Data {
         };
 
         Ok(DocumentDiagnosticReportResult::Report(
-            DocumentDiagnosticReport::Full(
-                RelatedFullDocumentDiagnosticReport {
-                    related_documents: None,
-                    full_document_diagnostic_report:
-                        FullDocumentDiagnosticReport {
-                            result_id: None,
-                            items: diags,
-                        },
+            DocumentDiagnosticReport::Full(RelatedFullDocumentDiagnosticReport {
+                related_documents: None,
+                full_document_diagnostic_report: FullDocumentDiagnosticReport {
+                    result_id: None,
+                    items: diags,
                 },
-            ),
+            }),
         ))
     }
     pub fn semantic_tokens_full(&self) -> Result<Option<SemanticTokensResult>> {

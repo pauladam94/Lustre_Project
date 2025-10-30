@@ -1,14 +1,12 @@
 use async_lock::RwLock;
 use lsp_types::{
     DiagnosticOptions, DiagnosticServerCapabilities, DocumentDiagnosticParams,
-    DocumentDiagnosticReportResult, DocumentFormattingParams,
-    DocumentHighlight, DocumentHighlightOptions, DocumentHighlightParams,
-    InitializeParams, InitializeResult, InitializedParams, MessageType, OneOf,
-    SemanticTokenModifier, SemanticTokenType, SemanticTokensFullOptions,
-    SemanticTokensLegend, SemanticTokensOptions, SemanticTokensParams,
+    DocumentDiagnosticReportResult, DocumentFormattingParams, DocumentHighlight,
+    DocumentHighlightOptions, DocumentHighlightParams, InitializeParams, InitializeResult,
+    InitializedParams, MessageType, OneOf, SemanticTokenModifier, SemanticTokenType,
+    SemanticTokensFullOptions, SemanticTokensLegend, SemanticTokensOptions, SemanticTokensParams,
     SemanticTokensResult, SemanticTokensServerCapabilities, ServerCapabilities,
-    TextDocumentSyncCapability, TextDocumentSyncKind, TextEdit,
-    WorkDoneProgressOptions,
+    TextDocumentSyncCapability, TextDocumentSyncKind, TextEdit, WorkDoneProgressOptions,
 };
 use lustre_analyzer::token_type::TokenType;
 use lustrels::data::Data;
@@ -28,45 +26,37 @@ impl Backend {
 }
 
 impl LanguageServer for Backend {
-    async fn initialize(
-        &self,
-        _: InitializeParams,
-    ) -> Result<InitializeResult> {
+    async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
         Ok(InitializeResult {
             capabilities: ServerCapabilities {
                 document_formatting_provider: Some(OneOf::Left(true)),
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
                 )),
-                document_highlight_provider: Some(OneOf::Right(
-                    DocumentHighlightOptions {
-                        work_done_progress_options: WorkDoneProgressOptions {
-                            work_done_progress: Some(true),
-                        },
+                document_highlight_provider: Some(OneOf::Right(DocumentHighlightOptions {
+                    work_done_progress_options: WorkDoneProgressOptions {
+                        work_done_progress: Some(true),
                     },
-                )),
-                diagnostic_provider: Some(
-                    DiagnosticServerCapabilities::Options(DiagnosticOptions {
+                })),
+                diagnostic_provider: Some(DiagnosticServerCapabilities::Options(
+                    DiagnosticOptions {
                         identifier: None,
                         inter_file_dependencies: false,
                         workspace_diagnostics: false,
                         work_done_progress_options: WorkDoneProgressOptions {
                             work_done_progress: None,
                         },
-                    }),
-                ),
+                    },
+                )),
                 semantic_tokens_provider: Some(
                     SemanticTokensServerCapabilities::SemanticTokensOptions(
                         SemanticTokensOptions {
-                            work_done_progress_options:
-                                WorkDoneProgressOptions {
-                                    work_done_progress: None,
-                                },
+                            work_done_progress_options: WorkDoneProgressOptions {
+                                work_done_progress: None,
+                            },
                             legend: SemanticTokensLegend {
                                 token_types: TokenType::to_vec(),
-                                token_modifiers: vec![
-                                    SemanticTokenModifier::DECLARATION,
-                                ],
+                                token_modifiers: vec![SemanticTokenModifier::DECLARATION],
                             },
                             range: Some(false),
                             full: Some(SemanticTokensFullOptions::Bool(true)),
@@ -96,10 +86,7 @@ impl LanguageServer for Backend {
         self.update_text(params.content_changes[0].text.clone())
             .await
     }
-    async fn formatting(
-        &self,
-        _: DocumentFormattingParams,
-    ) -> Result<Option<Vec<TextEdit>>> {
+    async fn formatting(&self, _: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
         self.data.read().await.formatting()
     }
 

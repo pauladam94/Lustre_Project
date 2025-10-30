@@ -2,6 +2,9 @@ use colored::Colorize;
 
 use crate::parser::{ast::ast, span::LSpan, test::ok_parse};
 
+/// Verify that the given lustre program :
+/// - parse
+/// - don't have any diagnostic from the type checker
 pub fn ok_check(input: &str) {
     ok_parse(input);
     let (_, build_ast) = ast(LSpan::new(input)).unwrap();
@@ -108,6 +111,25 @@ let
     a = x + 5;
     z = a + x + 10;
     y = true;
+tel
+",
+        )
+    }
+    #[test]
+    fn test8_ok() {
+        ok_check(
+            "
+
+node f(x: int) returns(z: int, y: bool);
+let
+    a = x + 5;
+    z = a + x + 10;
+    y = true;
+tel
+node g(y: int) returns (x: bool);
+let
+    a = 11234 + f(y);
+    x = f(2) == f(a);
 tel
 ",
         )

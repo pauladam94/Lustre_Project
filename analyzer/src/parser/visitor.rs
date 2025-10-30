@@ -4,16 +4,14 @@ use crate::{
         ast::Ast,
         expression::{BinOp, Expr, UnaryOp},
         ftag::Tag,
-        literal::Literal,
+        literal::Value,
         node::Node,
         span::Span,
         var_type::VarType,
     },
     token_type::TokenType,
 };
-use lsp_types::{
-    DocumentHighlight, DocumentHighlightKind, Position, Range, SemanticToken,
-};
+use lsp_types::{DocumentHighlight, DocumentHighlightKind, Position, Range, SemanticToken};
 
 pub(crate) trait Visitor {
     fn visit_bin_op(&mut self, x: &BinOp) {}
@@ -21,11 +19,12 @@ pub(crate) trait Visitor {
 
     fn visit_span(&mut self, x: &Span) {}
 
-    fn visit_literal(&mut self, x: &Literal) {
+    fn visit_literal(&mut self, x: &Value) {
         match x {
-            Literal::Integer(_) => {}
-            Literal::Float(_) => {}
-            Literal::Bool(_) => {}
+            Value::Unit => {}
+            Value::Integer(_) => {}
+            Value::Float(_) => {}
+            Value::Bool(_) => {}
         }
     }
     fn visit_tag(&mut self, _: &Tag) {}
@@ -33,7 +32,12 @@ pub(crate) trait Visitor {
 
     fn visit_expr(&mut self, x: &Expr) {
         match x {
-            Expr::BinOp { lhs, op, rhs } => {
+            Expr::BinOp {
+                lhs,
+                op,
+                span_op: _,
+                rhs,
+            } => {
                 self.visit_expr(lhs);
                 self.visit_bin_op(op);
                 self.visit_expr(rhs);

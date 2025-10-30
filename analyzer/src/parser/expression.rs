@@ -1,8 +1,8 @@
+use crate::parser::array::array;
 use crate::parser::func_call::func_call;
-use crate::parser::literal::Literal;
+use crate::parser::literal::Value;
 use crate::parser::literal::identifier;
 use crate::parser::literal::literal;
-use crate::parser::parser::array;
 use crate::parser::span::Ident;
 use crate::parser::span::LSpan;
 use crate::parser::span::Span;
@@ -96,6 +96,7 @@ pub(crate) enum Expr {
     BinOp {
         lhs: Box<Expr>,
         op: BinOp,
+        span_op: Span,
         rhs: Box<Expr>,
     },
     UnaryOp {
@@ -108,17 +109,33 @@ pub(crate) enum Expr {
         args: Vec<Expr>,
     },
     Variable(Span),
-    Lit(Literal),
+    Lit(Value),
 }
 
 impl Expr {
+    pub fn get_value(&self) -> Option<Value> {
+        match self {
+            Expr::BinOp { .. }
+            | Expr::UnaryOp { .. }
+            | Expr::Array(_)
+            | Expr::FCall { .. }
+            | Expr::Variable(_) => None,
+            Expr::Lit(lit) => Some(lit.clone()),
+        }
+    }
+
     fn fmt_parent(
         &self,
         f: &mut std::fmt::Formatter,
         parent_op: Option<BinOp>,
     ) -> std::fmt::Result {
         match self {
-            Expr::BinOp { lhs, op, rhs } => match parent_op {
+            Expr::BinOp {
+                lhs,
+                op,
+                span_op: _,
+                rhs,
+            } => match parent_op {
                 Some(parent_op) => {
                     if parent_op.precedence() < op.precedence() {
                         write!(f, "(")?;
@@ -150,7 +167,7 @@ impl Expr {
                 write!(f, "{}(", name)?;
                 for (i, arg) in args.iter().enumerate() {
                     write!(f, "{}", arg)?;
-                    if i == args.len() - 1 {
+                    if i != args.len() - 1 {
                         write!(f, ", ")?;
                     }
                 }
@@ -207,7 +224,7 @@ pub(crate) fn expression(input: LSpan) -> IResult<LSpan, Expr> {
             use nom_language::precedence::Operation::*;
             match op {
                 Binary(lhs, op, rhs) => {
-                    let op = match *op.fragment() {
+                    let bin_op = match *op.fragment() {
                         "*" => Mult,
                         "+" => Add,
                         "/" => Div,
@@ -220,7 +237,8 @@ pub(crate) fn expression(input: LSpan) -> IResult<LSpan, Expr> {
                     };
                     Ok(Expr::BinOp {
                         lhs: Box::new(lhs),
-                        op,
+                        op: bin_op,
+                        span_op: Span::new(op),
                         rhs: Box::new(rhs),
                     })
                 }

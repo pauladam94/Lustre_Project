@@ -2,7 +2,7 @@ use crate::parser::{
     ast::Ast,
     expression::{BinOp, Expr},
     ftag::Tag,
-    literal::Literal,
+    literal::Value,
     node::Node,
     span::Span,
     var_type::VarType,
@@ -12,7 +12,7 @@ use colored::Colorize;
 pub(crate) trait DoubleTogetherVisitor {
     fn visit_bin_op(&mut self, a: &BinOp, b: &BinOp);
     fn visit_span(&mut self, a: &Span, b: &Span);
-    fn visit_literal(&mut self, a: &Literal, b: &Literal);
+    fn visit_literal(&mut self, a: &Value, b: &Value);
     fn visit_tag(&mut self, a: &Tag, b: &Tag);
     fn visit_var_type(&mut self, a: &VarType, b: &VarType);
     fn visit_expr(&mut self, a: &Expr, b: &Expr);
@@ -73,15 +73,15 @@ impl DoubleTogetherVisitor for ShallowEq {
         im_here!(self, x1, x2);
     }
 
-    fn visit_literal(&mut self, x1: &Literal, x2: &Literal) {
+    fn visit_literal(&mut self, x1: &Value, x2: &Value) {
         match (x1, x2) {
-            (Literal::Integer(i1), Literal::Integer(i2)) => {
+            (Value::Integer(i1), Value::Integer(i2)) => {
                 self.and(i1 == i2);
             }
-            (Literal::Float(f1), Literal::Float(f2)) => {
+            (Value::Float(f1), Value::Float(f2)) => {
                 self.and(f1 == f2);
             }
-            (Literal::Bool(b1), Literal::Bool(b2)) => {
+            (Value::Bool(b1), Value::Bool(b2)) => {
                 self.and(b1 == b2);
             }
             (_, _) => {
@@ -97,11 +97,13 @@ impl DoubleTogetherVisitor for ShallowEq {
                 Expr::BinOp {
                     lhs: alhs,
                     op: aop,
+                    span_op: _,
                     rhs: arhs,
                 },
                 Expr::BinOp {
                     lhs: blhs,
                     op: bop,
+                    span_op: _,
                     rhs: brhs,
                 },
             ) => {
@@ -109,9 +111,7 @@ impl DoubleTogetherVisitor for ShallowEq {
                 self.visit_bin_op(aop, bop);
                 self.visit_expr(arhs, brhs);
             }
-            (Expr::Lit(aliteral), Expr::Lit(bliteral)) => {
-                self.visit_literal(aliteral, bliteral)
-            }
+            (Expr::Lit(aliteral), Expr::Lit(bliteral)) => self.visit_literal(aliteral, bliteral),
             (_, _) => {}
         }
         im_here!(self, a, b);
