@@ -3,14 +3,14 @@ use crate::parser::span::LSpan;
 use crate::parser::span::Span;
 use crate::parser::var_type::VarType;
 use lsp_types::Range;
-use nom::bytes::complete::tag;
-use nom::character::complete::multispace0;
 use nom::IResult;
 use nom::Parser;
 use nom::branch::alt;
+use nom::bytes::complete::tag;
 use nom::character::complete::alpha1;
 use nom::character::complete::alphanumeric1;
 use nom::character::complete::digit1;
+use nom::character::complete::multispace0;
 use nom::combinator::recognize;
 use nom::combinator::value;
 use nom::multi::many0;
@@ -18,7 +18,6 @@ use nom::multi::many0_count;
 use nom::multi::many1;
 use nom::multi::many1_count;
 use nom::sequence::pair;
-use nom::sequence::separated_pair;
 use nom::sequence::terminated;
 use nom::{
     character::complete::{char, one_of},
@@ -106,19 +105,15 @@ fn float(input: LSpan) -> IResult<LSpan, f64> {
 }
 
 fn unit(input: LSpan) -> IResult<LSpan, ()> {
-    value((), separated_pair(
-        tag("("),
-        multispace0,
-        tag(")")
-    )).parse(input)
-    // value((), (tag("("), multispace0, tag(")"))).parse(input)
+    value((), (tag("("), multispace0, tag(")"))).parse(input)
 }
 
 pub(crate) fn literal(input: LSpan) -> IResult<LSpan, Value> {
     alt((
-        float.map(|f| Value::Float(f)),
-        integer.map(|i| Value::Integer(i)),
-        bool_parse.map(|b| Value::Bool(b)),
+        unit.map(|_| Value::Unit),
+        float.map(Value::Float),
+        integer.map(Value::Integer),
+        bool_parse.map(Value::Bool),
     ))
     .parse(input)
 }

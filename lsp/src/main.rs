@@ -3,7 +3,7 @@ use lsp_types::{
     DiagnosticOptions, DiagnosticServerCapabilities, DocumentDiagnosticParams,
     DocumentDiagnosticReportResult, DocumentFormattingParams, DocumentHighlight,
     DocumentHighlightOptions, DocumentHighlightParams, InitializeParams, InitializeResult,
-    InitializedParams, MessageType, OneOf, SemanticTokenModifier, SemanticTokenType,
+    InitializedParams, InlayHint, InlayHintParams, MessageType, OneOf, SemanticTokenModifier,
     SemanticTokensFullOptions, SemanticTokensLegend, SemanticTokensOptions, SemanticTokensParams,
     SemanticTokensResult, SemanticTokensServerCapabilities, ServerCapabilities,
     TextDocumentSyncCapability, TextDocumentSyncKind, TextEdit, WorkDoneProgressOptions,
@@ -63,6 +63,7 @@ impl LanguageServer for Backend {
                         },
                     ),
                 ),
+                inlay_hint_provider: Some(OneOf::Left(true)),
                 ..Default::default()
             },
             ..Default::default()
@@ -109,6 +110,9 @@ impl LanguageServer for Backend {
         _: SemanticTokensParams,
     ) -> Result<Option<SemanticTokensResult>> {
         self.data.read().await.semantic_tokens_full()
+    }
+    async fn inlay_hint(&self, _: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
+        self.data.read().await.inlay_hint()
     }
 }
 

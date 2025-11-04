@@ -3,19 +3,20 @@ use crate::{
     parser::{
         ast::Ast,
         expression::{BinOp, Expr, UnaryOp},
+        literal::Value,
         node::Node,
-        span::{Ident, Span},
+        span::{Ident, PositionEnd, Span},
         var_type::VarType,
     },
 };
 use indexmap::IndexMap;
-use lsp_types::{Diagnostic, DiagnosticSeverity};
+use lsp_types::{Diagnostic, DiagnosticSeverity, InlayHint, InlayHintLabel, Position};
 use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
 struct FunctionType {
     inputs: IndexMap<Ident, VarType>,
-    outputs: HashMap<Ident, VarType>,
+    outputs: IndexMap<Ident, VarType>,
     vars: HashMap<Ident, VarType>,
 }
 
@@ -25,30 +26,60 @@ struct CheckerInfo {
     local_types: HashMap<Ident, Option<VarType>>,
     current_node: Ident,
     diagnostics: Vec<Diagnostic>,
+    hints: Vec<InlayHint>,
 }
 
 impl CheckerInfo {
     fn set_current_node(&mut self, name: &Ident) {
-        self.current_node = name.clone();
+        self.current_node = name.clone()
     }
 
     fn push_diagnostic(&mut self, diag: Diagnostic) {
-        self.diagnostics.push(diag);
+        self.diagnostics.push(diag)
+    }
+    fn push_hint(&mut self, position: Position, label: String) {
+        self.hints.push(InlayHint {
+            position,
+            label: InlayHintLabel::String(label),
+            kind: None,
+            text_edits: None,
+            tooltip: None,
+            padding_left: None,
+            padding_right: None,
+            data: None,
+        })
     }
 }
 
+pub(crate) fn numeral_string<'a>(i: usize) -> String {
+    if i == 0 {
+        "1st".to_string()
+    } else {
+        format!("{}nd", i + 1)
+    }
+}
 impl CheckerInfo {
     fn get_type_equation(&mut self, node: &Node, expr: &Expr) -> Option<VarType> {
         match expr {
             Expr::BinOp {
                 lhs,
                 op: BinOp::Add | BinOp::Sub | BinOp::Div | BinOp::Mult | BinOp::Fby,
-                span_op: _,
+                span_op,
                 rhs,
             } => {
                 let lt = self.get_type_equation(node, lhs)?;
                 let rt = self.get_type_equation(node, rhs)?;
-                if lt == rt { Some(lt) } else { None }
+                if lt == rt {
+                    Some(lt)
+                } else {
+                    self.push_diagnostic(Diagnostic {
+                        message: format!("Got type '{}' on the left and '{}' on the right\n but expected to have the same type.", lt, rt),
+                        severity: Some(DiagnosticSeverity::ERROR),
+                        range: span_op.to_range(),
+                        ..Default::default()
+                    });
+                    None
+                }
             }
             Expr::BinOp {
                 lhs,
@@ -73,19 +104,52 @@ impl CheckerInfo {
             Expr::BinOp {
                 lhs,
                 op: BinOp::Arrow,
-                span_op: _,
+                span_op,
                 rhs,
             } => {
                 let lt = self.get_type_equation(node, lhs)?;
                 let rt = self.get_type_equation(node, rhs)?;
-                todo!()
+                if lt == rt {
+                    Some(lt)
+                } else {
+                    self.push_diagnostic(Diagnostic {
+                        message: format!("Got type '{}' on the left and '{}' on the right\n but expected to have the same type.", lt, rt),
+                        severity: Some(DiagnosticSeverity::ERROR),
+                        range: span_op.to_range(),
+                        ..Default::default()
+                    });
+                    None
+                }
             }
             Expr::UnaryOp {
-                op: UnaryOp::Inv | UnaryOp::Pre | UnaryOp::Not,
+                op: UnaryOp::Inv,
                 rhs,
             } => {
                 let t = self.get_type_equation(node, rhs)?;
-                return Some(t);
+                match t {
+                    VarType::Int | VarType::Float => Some(t),
+                    VarType::Tuple(var_types) => todo!(),
+                    VarType::Array(var_type) => todo!(),
+                    VarType::Char
+                    | VarType::String
+                    | VarType::Pre(_)
+                    | VarType::Bool
+                    | VarType::Unit => None,
+                }
+            }
+            Expr::UnaryOp {
+                op: UnaryOp::Pre,
+                rhs,
+            } => {
+                let t = self.get_type_equation(node, rhs)?;
+                Some(VarType::Pre(Box::new(t)))
+            }
+            Expr::UnaryOp {
+                op: UnaryOp::Not,
+                rhs,
+            } => {
+                let t = self.get_type_equation(node, rhs)?;
+                Some(t)
             }
             Expr::Variable(s) => match self.local_types.get(s) {
                 // type of variable found
@@ -121,40 +185,69 @@ impl CheckerInfo {
                 }
                 Some(VarType::Array(Box::new(t?)))
             }
-            Expr::FCall { name, args } => match self.nodes_types.get(name) {
-                Some(ft) => {
-                    let ft = ft.clone();
-                    if ft.inputs.len() != args.len() {
-                        self.push_diagnostic(Diagnostic {
-                            message: format!(
-                                "Expected {} arguments for function '{}' but got {} arguments.",
-                                ft.inputs.len(),
-                                name,
-                                args.len()
-                            ),
-                            severity: Some(DiagnosticSeverity::ERROR),
-                            range: name.to_range(),
-                            ..Default::default()
-                        });
-                        return None;
-                    }
-                    for (i, (arg, (_, expected_type))) in
-                        args.iter().zip(ft.inputs.iter()).enumerate()
-                    {
-                        match self.get_type_equation(node, arg) {
-                            Some(t) => {
-                                if t != *expected_type {
+            Expr::FCall { name, args } => {
+                let args = if args.is_empty() {
+                    &vec![Expr::Lit(Value::Unit)]
+                } else {
+                    args
+                };
+                self.get_type_function(node, name, args)
+            }
+        }
+    }
+
+    fn get_type_function(&mut self, node: &Node, name: &Span, args: &Vec<Expr>) -> Option<VarType> {
+        if name == &node.name {
+            self.push_diagnostic(Diagnostic {
+                message: "Recursive function call are not allowed".to_string(),
+                severity: Some(DiagnosticSeverity::ERROR),
+                range: name.to_range(),
+                ..Default::default()
+            });
+            return None;
+        }
+        enum FunctionCallType {
+            Unknown,
+            Simple,
+            Array,
+        }
+        let mut call_type = FunctionCallType::Unknown;
+        match self.nodes_types.get(name) {
+            Some(ft) => {
+                let ft = ft.clone();
+                if ft.inputs.len() != args.len() {
+                    self.push_diagnostic(Diagnostic {
+                        message: format!(
+                            "Expected {} arguments for function '{}' but got {} arguments.",
+                            ft.inputs.len(),
+                            name,
+                            args.len()
+                        ),
+                        severity: Some(DiagnosticSeverity::ERROR),
+                        range: name.to_range(),
+                        ..Default::default()
+                    });
+                    return None;
+                }
+                for (i, (arg, (_, expected_type))) in args.iter().zip(ft.inputs.iter()).enumerate()
+                {
+                    match self.get_type_equation(node, arg) {
+                        Some(t) => match call_type {
+                            FunctionCallType::Unknown => {
+                                // Always reachable because
+                                if &t == expected_type {
+                                    call_type = FunctionCallType::Simple;
+                                } else if t == VarType::Array(Box::new(expected_type.clone())) {
+                                    call_type = FunctionCallType::Array;
+                                } else {
                                     self.push_diagnostic(Diagnostic {
                                         message: format!(
-                                            "{} arguments of function {} of type '{}' but expected '{}'",
-                                            if i == 0 {
-                                                "1st"
-                                            } else {
-                                                &format!("{}nd", i + 1)
-                                            },
+                                            "{} arguments of function {} of type '{}' but expected '{}' or '{}'",
+                                            numeral_string(i),
                                             name,
                                             t,
-                                            expected_type
+                                            expected_type,
+                                            VarType::Array(Box::new(expected_type.clone()))
                                         ),
                                         severity: Some(DiagnosticSeverity::ERROR),
                                         range: name.to_range(),
@@ -163,38 +256,85 @@ impl CheckerInfo {
                                     return None;
                                 }
                             }
-                            None => {
-                                self.push_diagnostic(Diagnostic {
-                                    message: format!(
-                                        "{} arguments of function {} does not type check.",
-                                        if i == 0 {
-                                            "1st"
-                                        } else {
-                                            &format!("{}nd", i + 1)
-                                        },
-                                        name,
-                                    ),
-                                    severity: Some(DiagnosticSeverity::ERROR),
-                                    range: name.to_range(),
-                                    ..Default::default()
-                                });
-                                return None;
+                            FunctionCallType::Simple => {
+                                if &t != expected_type {
+                                    self.push_diagnostic_call(name, i, expected_type, t);
+                                    return None;
+                                }
                             }
+                            FunctionCallType::Array => {
+                                let expected_type = VarType::Array(Box::new(expected_type.clone()));
+                                if t != expected_type {
+                                    self.push_diagnostic_call(name, i, &expected_type, t);
+                                    return None;
+                                }
+                            }
+                        },
+                        None => {
+                            self.push_diagnostic(Diagnostic {
+                                message: format!(
+                                    "{} arguments of function {} does not type check.",
+                                    numeral_string(i),
+                                    name,
+                                ),
+                                severity: Some(DiagnosticSeverity::ERROR),
+                                range: name.to_range(),
+                                ..Default::default()
+                            });
+                            return None;
                         }
                     }
-                    // TODO List of Types for outputting the right
-                    let a = ft.outputs.iter().next()?.1;
-                    return Some(a.clone());
                 }
-                None => todo!(),
-            },
+                match call_type {
+                    FunctionCallType::Unknown => unreachable!(),
+                    FunctionCallType::Simple => Some(VarType::tuple_from_vec(
+                        ft.outputs.values().cloned().collect(),
+                    )),
+                    FunctionCallType::Array => Some(VarType::tuple_from_vec(
+                        ft.outputs
+                            .values()
+                            .cloned()
+                            .map(|t| VarType::Array(Box::new(t)))
+                            .collect(),
+                    )),
+                }
+            }
+            None => {
+                self.push_diagnostic(Diagnostic {
+                    message: format!("Function '{}' never defined.", name,),
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    range: name.to_range(),
+                    ..Default::default()
+                });
+                None
+            }
         }
+    }
+
+    fn push_diagnostic_call(&mut self, name: &Span, i: usize, expected_type: &VarType, t: VarType) {
+        self.push_diagnostic(Diagnostic {
+            message: format!(
+                "{} arguments of function {} of type '{}' but expected '{}'",
+                numeral_string(i),
+                name,
+                t,
+                expected_type
+            ),
+            severity: Some(DiagnosticSeverity::ERROR),
+            range: name.to_range(),
+            ..Default::default()
+        });
     }
 
     fn get_type_var(&mut self, node: &Node, var: &Span) -> Option<VarType> {
         for (name, expr) in node.let_bindings.iter() {
             if name == var {
-                return self.get_type_equation(node, expr);
+                let type_equation = self.get_type_equation(node, expr);
+                match &type_equation {
+                    Some(t) => self.push_hint(name.position_end(), format!(" : {t}")),
+                    None => {}
+                }
+                return type_equation;
             }
         }
         self.push_diagnostic(Diagnostic {
@@ -265,28 +405,19 @@ impl CheckerInfo {
                 }
             }
         }
-
-        // Call function that check type of a variable
-        // error 1: no equation for the variable / not input
-        // error 2: no the type expected
-        // No variables are defined two times in equations
-
-        // Functions cannot be called inside their own body
-
-        // toutes les expressions ont le bon type
     }
 
     fn get_nodes_types(&mut self, x: &Ast) {
         for node in x.nodes.iter() {
             let mut func = FunctionType {
                 inputs: IndexMap::new(),
-                outputs: HashMap::new(),
+                outputs: IndexMap::new(),
                 vars: HashMap::new(),
             };
             for (name, t) in node.inputs.iter() {
                 if func.inputs.contains_key(name) {
                     self.push_diagnostic(Diagnostic {
-                        message: format!("Input name already used."),
+                        message: "Input name already used.".to_string(),
                         severity: Some(DiagnosticSeverity::ERROR),
                         range: name.to_range(),
                         ..Default::default()
@@ -298,7 +429,7 @@ impl CheckerInfo {
             for (name, t) in node.outputs.iter() {
                 if func.outputs.contains_key(name) {
                     self.push_diagnostic(Diagnostic {
-                        message: format!("Output name already used."),
+                        message: "Output name already used.".to_string(),
                         severity: Some(DiagnosticSeverity::ERROR),
                         range: name.to_range(),
                         ..Default::default()
@@ -310,7 +441,7 @@ impl CheckerInfo {
             for (name, t) in node.vars.iter() {
                 if func.vars.contains_key(name) {
                     self.push_diagnostic(Diagnostic {
-                        message: format!("Var name already used."),
+                        message: "Var name already used.".to_string(),
                         severity: Some(DiagnosticSeverity::ERROR),
                         range: name.to_range(),
                         ..Default::default()
@@ -330,6 +461,11 @@ impl CheckerInfo {
                     ..Default::default()
                 });
             }
+            // TODO better ?
+            // Add Unit type for function with no inputs
+            if func.inputs.is_empty() {
+                func.inputs.insert(node.name.clone(), VarType::Unit);
+            }
             self.nodes_types.insert(node.name.clone(), func);
         }
     }
@@ -344,9 +480,9 @@ impl CheckerInfo {
 }
 
 impl Ast {
-    pub fn check(&self) -> Vec<Diagnostic> {
+    pub fn check(&self) -> (Vec<Diagnostic>, Vec<InlayHint>) {
         let mut checker = CheckerInfo::default();
         checker.check_ast(self);
-        checker.diagnostics
+        (checker.diagnostics, checker.hints)
     }
 }

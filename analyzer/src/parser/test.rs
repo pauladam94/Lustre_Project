@@ -12,7 +12,7 @@ where
     E: std::fmt::Debug,
 {
     let s = LSpan::new(input);
-    match (&mut f).parse(s) {
+    match f.parse(s) {
         Ok(_) => {}
         Err(err) => {
             println!("{}\n{}", ">> input :".blue(), input);
@@ -27,27 +27,21 @@ where
     O: std::fmt::Debug,
 {
     let s = LSpan::new(input);
-    match (&mut f).parse(s) {
-        Ok((rest, output)) => {
-            println!("{}:\n{}", ">> input".blue(), input);
-            println!("{}\n{:#?}", ">> output :".red(), output);
-            println!("{}\n{}", ">> rest :".red(), rest);
-            assert!(false);
-        }
-        Err(_) => {}
+    if let Ok((rest, output)) = f.parse(s) {
+        println!("{}:\n{}", ">> input".blue(), input);
+        println!("{}\n{:#?}", ">> output :".red(), output);
+        println!("{}\n{}", ">> rest :".red(), rest);
+        assert!(false);
     }
 }
 
 pub fn error_parse(input: &str) {
     let span = LSpan::new(input);
 
-    match ast(span) {
-        Ok((_, res)) => {
-            println!("{}\n{input}", ">> input : ".blue());
-            println!("{}\n{res}", ">> result : ".red());
-            assert!(false);
-        }
-        _ => (),
+    if let Ok((_, res)) = ast(span) {
+        println!("{}\n{input}", ">> input : ".blue());
+        println!("{}\n{res}", ">> result : ".red());
+        assert!(false);
     }
 }
 
@@ -58,7 +52,7 @@ pub fn ok_parse(input: &str) {
     }
     println!("\n{}\n\"{input}\"", ">> in :".blue());
 
-    let mut tests = vec![
+    let mut tests = [
         Test {
             name: "in | parse | display == in",
             passed: false,
@@ -89,7 +83,7 @@ pub fn ok_parse(input: &str) {
             println!("{}\n{in_parse}", ">> in | parse :".blue());
             println!("{}\n{in_rest}", ">> in | parse_rest".purple());
 
-            tests[1].passed = *in_rest.fragment() == "";
+            tests[1].passed = in_rest.fragment().is_empty();
 
             let span = LSpan::new(&in_parse_display);
 
@@ -484,5 +478,58 @@ let
     x = f(1, 2, y);
 tel",
         )
+    }
+
+    #[test]
+    fn multiple_args_one_type_1_ok() {
+        ok_parse(
+            "
+node id(x, y : int) returns (a, b : int);
+let
+    a = x;
+    b = y;
+tel
+
+#[test]
+node test() returns (z: bool);
+let
+    z = has_been_true([false, true, true]) == [false, true, true];        
+tel
+        ",
+        );
+    }
+    #[test]
+    fn multiple_args_one_type_2_ok() {
+        ok_parse(
+            "
+node id(x, y, z : int, a, b : bool) returns (a, b : int);
+let
+    a = x;
+    b = y;
+tel
+
+#[test]
+node test() returns (z: bool);
+let
+    z = has_been_true([false, true, true]) == [false, true, true];        
+tel
+        ",
+        );
+    }
+    #[test]
+    fn test_arrow_operator_ok() {
+        ok_parse(
+            "
+node f() returns (z : int);
+let
+    z = 1 -> pre z;
+tel
+
+node g() returns (z : int);
+let
+    z = 1 -> 2 -> pre z;
+tel
+        ",
+        );
     }
 }

@@ -16,6 +16,10 @@ pub fn ok_interpretation(input: &str) {
         if node.tag.is_some() {
             let equations = &node.let_bindings;
 
+            let compile_ast = build_ast.compile(node.name.clone());
+            println!("{}\n{}", "COMPILE :".blue(), compile_ast);
+
+            // Verify it is a test of type (unit -> bool)
             // More than One equation
             if equations.len() != 1
                 || equations[0].0.fragment() != node.outputs[0].0.fragment()
@@ -36,7 +40,7 @@ mod test {
     use crate::interpreter::test::ok_interpretation;
 
     #[test]
-    fn fibonacci_ok() {
+    fn fibonacci_1_ok() {
         ok_interpretation(
             "
 node fibo() returns (x : int);
@@ -47,7 +51,26 @@ tel
 #[test]
 node verify_5_first_value() returns (z: bool);
 let
-    z = fibo([(), (), ()]) == [false, true, true];        
+    z = fibo([(), (), (), (), ()]) == [1, 1, 2, 3, 5];        
+tel
+        ",
+        );
+    }
+    #[test]
+    fn fibonacci_2_ok() {
+        ok_interpretation(
+            "
+node fibo() returns (x : int);
+let
+    x_1 = 1 fby x;
+    x_0 = 1 fby x_1; 
+    x = x_0 + x_1; 
+tel
+
+#[test]
+node verify_5_first_value() returns (z: bool);
+let
+    z = fibo([(), (), (), (), ()]) == [1, 1, 2, 3, 5];        
 tel
         ",
         );

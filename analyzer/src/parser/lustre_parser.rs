@@ -2,7 +2,6 @@ use crate::diagnostic::ToRange;
 use crate::parser::ast::{Ast, ast};
 use crate::parser::span::LSpan;
 use lsp_types::{Diagnostic, DiagnosticSeverity, Position, Range};
-use nom::Parser;
 
 pub fn lustre_parse(input: &str) -> Result<Ast, Vec<Diagnostic>> {
     match ast(LSpan::new(input)) {
@@ -22,7 +21,7 @@ pub fn lustre_parse(input: &str) -> Result<Ast, Vec<Diagnostic>> {
                             },
                         },
                         severity: Some(DiagnosticSeverity::ERROR),
-                        message: format!("Parsing Error : Unknown"),
+                        message: "Parsing Error : Unknown".to_string(),
                         ..Default::default()
                     }]
                 }

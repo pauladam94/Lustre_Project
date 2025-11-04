@@ -1,8 +1,12 @@
+use std::any::Any;
+
 use lsp_types::Diagnostic;
 use lsp_types::DocumentDiagnosticReport;
 use lsp_types::DocumentDiagnosticReportResult;
 use lsp_types::DocumentHighlight;
 use lsp_types::FullDocumentDiagnosticReport;
+use lsp_types::InlayHint;
+use lsp_types::InlayHintParams;
 use lsp_types::Position;
 use lsp_types::Range;
 use lsp_types::RelatedFullDocumentDiagnosticReport;
@@ -18,17 +22,17 @@ pub struct Data {
     text: String,
     parse: std::result::Result<Ast, Vec<Diagnostic>>,
     check: Vec<Diagnostic>,
+    type_hint: Vec<InlayHint>,
     test: Vec<Diagnostic>,
 }
 impl Data {
     pub fn update_text(&mut self, s: String) {
         self.text = s;
         self.parse = lustre_parse(&self.text);
-        match &self.parse {
-            Ok(ast) => {
-                self.check = ast.check();
-            }
-            Err(_) => {}
+        if let Ok(ast) = &self.parse {
+            let (check, type_hint) = ast.check();
+            self.check = check;
+            self.type_hint = type_hint;
         }
     }
     pub fn formatting(&self) -> Result<Option<Vec<TextEdit>>> {
@@ -93,8 +97,13 @@ impl Data {
                 result_id: None,
                 data: ast.semantic_tokens_full(),
             }))),
-            Err(_) => Ok(None),
+            Err(_) => Ok(Some(SemanticTokensResult::Partial(
+                lsp_types::SemanticTokensPartialResult { data: vec![] },
+            ))),
         }
+    }
+    pub fn inlay_hint(&self) -> Result<Option<Vec<InlayHint>>> {
+        Ok(Some(self.type_hint.clone()))
     }
 }
 
@@ -104,6 +113,7 @@ impl std::default::Default for Data {
             text: Default::default(),
             parse: Err(vec![]),
             check: vec![],
+            type_hint: vec![],
             test: vec![],
         }
     }

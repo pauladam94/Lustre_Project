@@ -5,7 +5,7 @@ use nom::bytes::complete::tag;
 use nom::combinator::value;
 use nom::{IResult, Parser};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq)]
 pub(crate) enum VarType {
     Unit,
     Pre(Box<VarType>),
@@ -16,6 +16,17 @@ pub(crate) enum VarType {
     String,
     Tuple(Vec<VarType>),
     Array(Box<VarType>),
+}
+
+impl PartialEq for VarType {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Pre(l0), Self::Pre(r0)) => l0 == r0,
+            (Self::Tuple(l0), Self::Tuple(r0)) => l0 == r0,
+            (Self::Array(l0), Self::Array(r0)) => l0 == r0,
+            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+        }
+    }
 }
 
 impl std::fmt::Display for VarType {
@@ -42,6 +53,15 @@ impl std::fmt::Display for VarType {
     }
 }
 
+impl VarType {
+    pub fn tuple_from_vec(vec: Vec<VarType>) -> Self {
+        match &vec[..] {
+            [] => Self::Unit,
+            [t] => t.clone(),
+            _ => Self::Tuple(vec),
+        }
+    }
+}
 pub(crate) fn var_type(input: LSpan) -> IResult<LSpan, VarType> {
     ws(alt((
         value(VarType::Int, tag("int")),

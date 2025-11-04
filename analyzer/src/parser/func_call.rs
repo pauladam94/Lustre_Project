@@ -14,12 +14,21 @@ pub(crate) fn func_call(input: LSpan) -> IResult<LSpan, (Span, Vec<Expr>)> {
             many0(terminated(ws(expression), ws(tag(",")))),
             opt(ws(expression)),
         )
-            .map(|(mut v, e)| match e {
-                Some(e) => {
-                    v.push(e);
-                    v
+            .map(|(mut v, e)| {
+                
+                // TODO
+                // Add unit as empty argument
+                // if v.is_empty() {
+                //     vec![]
+                // } else {
+                // }
+                match e {
+                    Some(e) => {
+                        v.push(e);
+                        v
+                    }
+                    None => v,
                 }
-                None => v,
             }),
         ws(tag(")")),
     )

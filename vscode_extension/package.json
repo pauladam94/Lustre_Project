@@ -4,6 +4,7 @@
   "description": "VS Code extension providing LSP support for Lustre (.lus) using lustre-lsp",
   "version": "0.0.1",
   "publisher": "pauladam",
+  "repository": "https://github.com/pauladam94/Lustre_Project",
   "engines": {
     "vscode": "^1.105.0"
   },

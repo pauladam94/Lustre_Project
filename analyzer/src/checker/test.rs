@@ -9,7 +9,7 @@ pub fn ok_check(input: &str) {
     ok_parse(input);
     let (_, build_ast) = ast(LSpan::new(input)).unwrap();
 
-    let diags = build_ast.check();
+    let (diags, _) = build_ast.check();
     if !diags.is_empty() {
         println!(
             "{} : diagnostics should be empty\n>>{} = {:#?}",
@@ -25,7 +25,7 @@ pub fn error_check(input: &str) {
     ok_parse(input);
     let (_, build_ast) = ast(LSpan::new(input)).unwrap();
 
-    let diags = build_ast.check();
+    let (diags, _) = build_ast.check();
     if diags.is_empty() {
         println!("{}: error expected but no diagnostics", ">> ERROR".red());
         assert!(false);
@@ -133,5 +133,35 @@ let
 tel
 ",
         )
+    }
+    #[test]
+    fn id_ok() {
+        ok_check(
+            "
+
+node id() returns(z: int);
+let
+    z = 0 fby z;
+tel
+",
+        )
+    }
+
+    #[test]
+    fn fibonacci_1_error() {
+        error_check(
+            "
+node fibo() returns (x : int);
+let
+    x = 1 fby x + (1 fby (1 fby x)); 
+tel
+
+#[test]
+node verify_5_first_value() returns (z: bool);
+let
+    z = fibo([(), (), (), (), ()]) == [false, true, true, true, true];        
+tel
+        ",
+        );
     }
 }

@@ -2,8 +2,8 @@ use crate::parser::args::args;
 use crate::parser::equation::equations;
 use crate::parser::expression::Expr;
 use crate::parser::ftag::Tag;
-use crate::parser::literal::identifier;
 use crate::parser::literal::Value;
+use crate::parser::literal::identifier;
 use crate::parser::span::Ident;
 use crate::parser::span::LSpan;
 use crate::parser::span::Span;
@@ -54,7 +54,7 @@ impl std::fmt::Display for Node {
 
         writeln!(f, ");")?;
 
-        write!(f, "let\n")?;
+        writeln!(f, "let")?;
         for (s, e) in self.let_bindings.iter() {
             writeln!(f, "\t{s} = {e};")?;
         }
@@ -64,8 +64,7 @@ impl std::fmt::Display for Node {
 
 impl Node {
     pub fn replace_variable(&mut self, val: Value) {
-        for (_, node) in self.let_bindings.iter_mut() {
-        }
+        for (_, node) in self.let_bindings.iter_mut() {}
     }
 }
 impl SpanEq for Node {

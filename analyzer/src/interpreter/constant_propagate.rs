@@ -14,10 +14,17 @@ impl PropagateConst for Ast {
 
 impl PropagateConst for Node {
     fn propagate_const(&mut self) {
+        for (out, t) in self.outputs.iter() {
+            for (name, expr) in self.let_bindings.iter_mut() {
+                if out == name {
+                    expr.propagate_const();
+                }
+            }
+        }
         for (name, expr) in self.let_bindings.iter_mut() {
             expr.propagate_const();
             match expr.get_value() {
-                None => {},
+                None => {}
                 Some(val) => {
                     // self.replace_variable(val);
                 }
@@ -79,9 +86,13 @@ impl PropagateConst for Expr {
                 rhs.propagate_const();
             }
             Expr::Array(exprs) => todo!(),
-            Expr::FCall { name, args } => todo!(),
-            Expr::Variable(span) => todo!(),
+            Expr::FCall { name, args } => {
+                
+            },
+            Expr::Variable(span) => {},
             Expr::Lit(literal) => todo!(),
         }
     }
 }
+
+

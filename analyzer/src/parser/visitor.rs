@@ -11,7 +11,7 @@ use crate::{
     },
     token_type::TokenType,
 };
-use lsp_types::{DocumentHighlight, DocumentHighlightKind, Position, Range, SemanticToken};
+use lsp_types::{DocumentHighlight, DocumentHighlightKind, SemanticToken};
 
 pub(crate) trait Visitor {
     fn visit_bin_op(&mut self, x: &BinOp) {}
@@ -60,7 +60,7 @@ pub(crate) trait Visitor {
 
     fn visit_node(&mut self, x: &Node) {
         if let Some(t) = &x.tag {
-            self.visit_tag(&t)
+            self.visit_tag(t)
         }
         self.visit_span(&x.name);
         for (name, t) in x.inputs.iter() {
@@ -118,21 +118,18 @@ impl SemanticTokenVisitor {
     fn compile_tokens(&mut self) {
         for i in (0..self.tokens.len()).rev() {
             let current = self.tokens[i];
-            match self.tokens.get(i - 1) {
-                Some(last) => {
-                    self.tokens[i] = SemanticToken {
-                        delta_line: current.delta_line - last.delta_line,
-                        delta_start: if current.delta_line == last.delta_line {
-                            current.delta_start - last.delta_start
-                        } else {
-                            current.delta_start
-                        },
-                        length: current.length,
-                        token_type: current.token_type,
-                        token_modifiers_bitset: current.token_modifiers_bitset,
-                    }
+            if let Some(last) = self.tokens.get(i - 1) {
+                self.tokens[i] = SemanticToken {
+                    delta_line: current.delta_line - last.delta_line,
+                    delta_start: if current.delta_line == last.delta_line {
+                        current.delta_start - last.delta_start
+                    } else {
+                        current.delta_start
+                    },
+                    length: current.length,
+                    token_type: current.token_type,
+                    token_modifiers_bitset: current.token_modifiers_bitset,
                 }
-                None => {}
             }
         }
     }
@@ -155,7 +152,7 @@ impl Visitor for SemanticTokenVisitor {
     fn visit_node(&mut self, x: &Node) {
         self.push(x.span_node.to_semantic_token(TokenType::Keyword));
         if let Some(t) = &x.tag {
-            self.visit_tag(&t)
+            self.visit_tag(t)
         }
         self.visit_span(&x.name);
         for (name, t) in x.inputs.iter() {

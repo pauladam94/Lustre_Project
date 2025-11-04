@@ -29,6 +29,17 @@ impl PartialEq for Span {
         self.fragment == other.fragment
     }
 }
+pub trait PositionEnd {
+    fn position_end(&self) -> Position;
+}
+impl PositionEnd for Span {
+    fn position_end(&self) -> Position {
+        Position {
+            line: self.location_line() - 1,
+            character: (self.get_column() + self.fragment().len()) as u32 - 1,
+        }
+    }
+}
 impl ToRange for LocatedSpan<&str> {
     fn to_range(&self) -> Range {
         Range {
@@ -38,7 +49,7 @@ impl ToRange for LocatedSpan<&str> {
             },
             end: Position {
                 line: self.location_line() - 1,
-                character: self.get_column() as u32,
+                character: (self.get_column() + self.fragment().len()) as u32 - 1,
             },
         }
     }
@@ -60,6 +71,9 @@ impl ToRange for Span {
 }
 
 impl Span {
+    pub fn eq_exact(&self, lhs: &Self) -> bool {
+        self.column == lhs.column && self.line == lhs.line && self.fragment() == lhs.fragment()
+    }
     pub fn to_semantic_token(&self, token_type: TokenType) -> SemanticToken {
         SemanticToken {
             delta_line: self.location_line() - 1,

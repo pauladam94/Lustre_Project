@@ -1,5 +1,5 @@
 use crate::parser::node::{Node, node};
-use crate::parser::span::{LSpan, Span};
+use crate::parser::span::LSpan;
 use crate::parser::visitor::{DocumentHighlightVisitor, SemanticTokenVisitor, Visitor};
 use crate::parser::white_space::ws;
 use lsp_types::{DocumentHighlight, Position, Range, SemanticToken, TextEdit};
@@ -20,10 +20,16 @@ impl std::fmt::Display for Ast {
             if i != self.nodes.len() - 1 {
                 write!(f, "\n\n")?;
             } else {
-                write!(f, "\n")?;
+                writeln!(f)?;
             }
         }
         Ok(())
+    }
+}
+
+impl Default for Ast {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
