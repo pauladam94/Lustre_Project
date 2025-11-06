@@ -5,9 +5,10 @@ use nom::bytes::complete::tag;
 use nom::combinator::value;
 use nom::{IResult, Parser};
 
-#[derive(Clone, Debug, Eq)]
-pub(crate) enum VarType {
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum VarType {
     Unit,
+    // Maybe this should be modified
     Pre(Box<VarType>),
     Int,
     Float,
@@ -16,17 +17,6 @@ pub(crate) enum VarType {
     String,
     Tuple(Vec<VarType>),
     Array(Box<VarType>),
-}
-
-impl PartialEq for VarType {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Pre(l0), Self::Pre(r0)) => l0 == r0,
-            (Self::Tuple(l0), Self::Tuple(r0)) => l0 == r0,
-            (Self::Array(l0), Self::Array(r0)) => l0 == r0,
-            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
-        }
-    }
 }
 
 impl std::fmt::Display for VarType {
@@ -41,13 +31,14 @@ impl std::fmt::Display for VarType {
             VarType::Pre(var_type) => write!(f, "pre {}", var_type),
             VarType::Array(var_type) => write!(f, "[{}]", var_type),
             VarType::Tuple(v) => {
+                write!(f, "(")?;
                 for (i, typ) in v.iter().enumerate() {
                     write!(f, "{typ}")?;
                     if i != v.len() - 1 {
                         write!(f, ", ")?;
                     }
                 }
-                Ok(())
+                write!(f, ")")
             }
         }
     }

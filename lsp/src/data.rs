@@ -1,12 +1,9 @@
-use std::any::Any;
-
 use lsp_types::Diagnostic;
 use lsp_types::DocumentDiagnosticReport;
 use lsp_types::DocumentDiagnosticReportResult;
 use lsp_types::DocumentHighlight;
 use lsp_types::FullDocumentDiagnosticReport;
 use lsp_types::InlayHint;
-use lsp_types::InlayHintParams;
 use lsp_types::Position;
 use lsp_types::Range;
 use lsp_types::RelatedFullDocumentDiagnosticReport;
@@ -23,7 +20,9 @@ pub struct Data {
     parse: std::result::Result<Ast, Vec<Diagnostic>>,
     check: Vec<Diagnostic>,
     type_hint: Vec<InlayHint>,
-    test: Vec<Diagnostic>,
+
+    test_hint: Vec<InlayHint>,
+    test_diag: Vec<Diagnostic>,
 }
 impl Data {
     pub fn update_text(&mut self, s: String) {
@@ -31,6 +30,10 @@ impl Data {
         self.parse = lustre_parse(&self.text);
         if let Ok(ast) = &self.parse {
             let (check, type_hint) = ast.check();
+            if check.is_empty() {
+                let (_, test_hint) = ast.propagate_const();
+                self.test_hint = test_hint;
+            }
             self.check = check;
             self.type_hint = type_hint;
         }
@@ -72,8 +75,8 @@ impl Data {
     pub fn diagnostic(&self) -> Result<DocumentDiagnosticReportResult> {
         let diags = match &self.parse {
             Ok(_) => {
-                if !self.test.is_empty() {
-                    self.test.clone()
+                if !self.test_diag.is_empty() {
+                    self.test_diag.clone()
                 } else {
                     self.check.clone()
                 }
@@ -103,7 +106,10 @@ impl Data {
         }
     }
     pub fn inlay_hint(&self) -> Result<Option<Vec<InlayHint>>> {
-        Ok(Some(self.type_hint.clone()))
+        let mut hints = self.type_hint.clone();
+        // TODO put again
+        hints.extend(self.test_hint.iter().cloned());
+        Ok(Some(hints))
     }
 }
 
@@ -114,7 +120,8 @@ impl std::default::Default for Data {
             parse: Err(vec![]),
             check: vec![],
             type_hint: vec![],
-            test: vec![],
+            test_hint: vec![],
+            test_diag: vec![],
         }
     }
 }

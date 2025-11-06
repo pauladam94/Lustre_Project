@@ -1,5 +1,6 @@
+use crate::parser::expression::Expr;
 use crate::parser::node::{Node, node};
-use crate::parser::span::LSpan;
+use crate::parser::span::{LSpan, Span};
 use crate::parser::visitor::{DocumentHighlightVisitor, SemanticTokenVisitor, Visitor};
 use crate::parser::white_space::ws;
 use lsp_types::{DocumentHighlight, Position, Range, SemanticToken, TextEdit};
@@ -37,7 +38,14 @@ impl Ast {
     pub fn new() -> Self {
         Self { nodes: vec![] }
     }
-    pub fn add_node(&mut self, node: Node) {
+    pub fn push_expr(&mut self, name: Span, expr: Expr) {
+        let len = self.nodes.len();
+        match self.nodes.get_mut(len - 1) {
+            Some(node) => node.push_expr(name, expr),
+            None => {}
+        }
+    }
+    pub fn push_node(&mut self, node: Node) {
         self.nodes.push(node);
     }
     pub fn text_edit(&self) -> Vec<TextEdit> {

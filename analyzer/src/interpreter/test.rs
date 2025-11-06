@@ -1,6 +1,5 @@
 use crate::{
     checker::test::ok_check,
-    interpreter::constant_propagate::PropagateConst,
     parser::{ast::ast, expression::Expr, literal::Value, span::LSpan},
 };
 use colored::Colorize;
@@ -9,15 +8,12 @@ pub fn ok_interpretation(input: &str) {
     ok_check(input);
     let (_, mut build_ast) = ast(LSpan::new(input)).unwrap();
 
-    build_ast.propagate_const();
-    println!("{}\n{}", ">> Propagate Constant :".blue(), build_ast);
+    let (const_ast, _) = build_ast.propagate_const();
+    println!("{}\n{}", ">> Propagate Constant :".blue(), const_ast);
 
-    for node in build_ast.nodes.iter() {
+    for node in const_ast.nodes.iter() {
         if node.tag.is_some() {
             let equations = &node.let_bindings;
-
-            let compile_ast = build_ast.compile(node.name.clone());
-            println!("{}\n{}", "COMPILE :".blue(), compile_ast);
 
             // Verify it is a test of type (unit -> bool)
             // More than One equation
@@ -39,6 +35,18 @@ pub fn ok_interpretation(input: &str) {
 mod test {
     use crate::interpreter::test::ok_interpretation;
 
+    #[test]
+
+    fn integer_operation_propagate_ok() {
+        ok_interpretation(
+            "
+node f() returns (x : int);
+let
+    z = 12 / 2;
+    x = (1 + 12) * 23 + z + 23 - 6; 
+tel",
+        );
+    }
     #[test]
     fn fibonacci_1_ok() {
         ok_interpretation(
@@ -76,6 +84,27 @@ tel
         );
     }
     #[test]
+    fn fibonacci_3_ok() {
+        ok_interpretation(
+            "
+node fibo() returns (x : int);
+let
+    x_1 = 1 fby x;
+    x_0 = 1 fby x_1; 
+    x = x_0 + x_1; 
+tel
+
+#[test]
+node verify_5_first_value() returns (z: bool);
+let
+    lhs =  fibo([(), (), (), (), ()]);
+    rhs = [1, 1, 2, 3, 5];
+    z = lhs == rhs;        
+tel
+        ",
+        );
+    }
+    #[test]
     fn has_been_true_ok() {
         ok_interpretation(
             "
@@ -91,6 +120,24 @@ let
     z = has_been_true([false, true, true]) == [false, true, true];        
 tel
         ",
+        );
+    }
+    #[test]
+    fn double_ok() {
+        ok_interpretation(
+            "
+node double(x : int) returns (z : int);
+let
+	z = x + x;
+tel
+
+#[test]
+node test() returns (b : bool);
+let
+	lhs = double([1, 2, 3]);
+	rhs = [2, 4, 6];
+	b = lhs == rhs;
+tel",
         );
     }
 }

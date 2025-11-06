@@ -1,13 +1,13 @@
 use crate::parser::{
     expression::{Expr, expression},
     literal::identifier,
-    span::{Ident, LSpan},
+    span::{Ident, LSpan, Span},
     white_space::ws,
 };
 use nom::{
     IResult, Parser,
     bytes::complete::tag,
-    multi::many0,
+    multi::{fold, many0},
     sequence::{separated_pair, terminated},
 };
 
@@ -22,8 +22,18 @@ pub(crate) fn equation(input: LSpan) -> IResult<LSpan, (Ident, Expr)> {
     .parse(input)
 }
 
-pub(crate) fn equations(input: LSpan) -> IResult<LSpan, Vec<(Ident, Expr)>> {
-    many0(terminated(ws(equation), ws(tag(";")))).parse(input)
+pub(crate) fn equations(input: LSpan) -> IResult<LSpan, (Vec<(Ident, Expr)>, Vec<Span>)> {
+    fold(
+        0..,
+        (ws(equation), ws(tag(";"))),
+        || return (Vec::new(), Vec::new()),
+        |(mut acc, mut acc_span), ((name, expr), semi_colon_span)| {
+            acc.push((name, expr));
+            acc_span.push(Span::new(semi_colon_span));
+            (acc, acc_span)
+        },
+    )
+    .parse(input)
 }
 
 #[cfg(test)]

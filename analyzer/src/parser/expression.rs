@@ -1,4 +1,5 @@
 use crate::parser::array::array;
+use crate::parser::binop::BinOp;
 use crate::parser::func_call::func_call;
 use crate::parser::literal::Value;
 use crate::parser::literal::identifier;
@@ -6,6 +7,7 @@ use crate::parser::literal::literal;
 use crate::parser::span::Ident;
 use crate::parser::span::LSpan;
 use crate::parser::span::Span;
+use crate::parser::unary_op::UnaryOp;
 use crate::parser::white_space::ws;
 use nom::IResult;
 use nom::branch::alt;
@@ -19,76 +21,8 @@ use nom_language::precedence::binary_op;
 use nom_language::precedence::precedence;
 use nom_language::precedence::unary_op;
 
-trait Precedence {
+pub(crate) trait Precedence {
     fn precedence(&self) -> usize;
-}
-
-#[derive(Clone, Debug, PartialEq, Copy)]
-pub(crate) enum BinOp {
-    Add,
-    Sub,
-    Mult,
-    Div,
-    Fby,
-    Arrow,
-    Eq,
-    Neq,
-}
-
-impl Precedence for BinOp {
-    fn precedence(&self) -> usize {
-        match self {
-            BinOp::Eq => 5,
-            BinOp::Neq => 5,
-            BinOp::Arrow => 4,
-            BinOp::Add => 3,
-            BinOp::Sub => 3,
-            BinOp::Mult => 2,
-            BinOp::Fby => 2,
-            BinOp::Div => 2,
-        }
-    }
-}
-
-impl std::fmt::Display for BinOp {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            BinOp::Add => write!(f, "+"),
-            BinOp::Sub => write!(f, "-"),
-            BinOp::Mult => write!(f, "*"),
-            BinOp::Div => write!(f, "/"),
-            BinOp::Fby => write!(f, "fby"),
-            BinOp::Arrow => write!(f, "->"),
-            BinOp::Eq => write!(f, "=="),
-            BinOp::Neq => write!(f, "!="),
-        }
-    }
-}
-#[derive(Clone, Debug, PartialEq, Copy)]
-pub(crate) enum UnaryOp {
-    Inv,
-    Pre,
-    Not,
-}
-
-impl Precedence for UnaryOp {
-    fn precedence(&self) -> usize {
-        match self {
-            UnaryOp::Inv => 1,
-            UnaryOp::Pre => 1,
-            UnaryOp::Not => 1,
-        }
-    }
-}
-
-impl std::fmt::Display for UnaryOp {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            UnaryOp::Inv => write!(f, "-"),
-            UnaryOp::Pre => write!(f, "pre"),
-            UnaryOp::Not => write!(f, "not"),
-        }
-    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -113,13 +47,26 @@ pub(crate) enum Expr {
 }
 
 impl Expr {
+    pub fn is_value(&self) -> bool {
+        true
+    }
     pub fn get_value(&self) -> Option<Value> {
         match self {
-            Expr::BinOp { .. }
-            | Expr::UnaryOp { .. }
-            | Expr::Array(_)
-            | Expr::FCall { .. }
-            | Expr::Variable(_) => None,
+            Expr::BinOp { .. } | Expr::UnaryOp { .. } | Expr::FCall { .. } | Expr::Variable(_) => {
+                None
+            }
+            Expr::Array(exprs) => {
+                let mut const_exprs = vec![];
+                for expr in exprs.iter() {
+                    match expr.get_value() {
+                        Some(value_expr) => {
+                            const_exprs.push(value_expr)
+                        }
+                        None => return None,
+                    }
+                }
+                return Some(Value::Array(const_exprs));
+            }
             Expr::Lit(lit) => Some(lit.clone()),
         }
     }
@@ -205,12 +152,14 @@ pub(crate) fn expression(input: LSpan) -> IResult<LSpan, Expr> {
         alt((
             binary_op(Mult.precedence(), Assoc::Left, ws(tag("*"))),
             binary_op(Div.precedence(), Assoc::Left, ws(tag("/"))),
+            binary_op(Arrow.precedence(), Assoc::Left, ws(tag("->"))),
             binary_op(Add.precedence(), Assoc::Left, ws(tag("+"))),
             binary_op(Sub.precedence(), Assoc::Left, ws(tag("-"))),
-            binary_op(Arrow.precedence(), Assoc::Left, ws(tag("->"))),
             binary_op(Fby.precedence(), Assoc::Left, ws(tag("fby"))),
             binary_op(Eq.precedence(), Assoc::Left, ws(tag("=="))),
             binary_op(Neq.precedence(), Assoc::Left, ws(tag("!="))),
+            binary_op(Or.precedence(), Assoc::Left, ws(tag("or"))),
+            binary_op(And.precedence(), Assoc::Left, ws(tag("and"))),
         )),
         alt((
             delimited(ws(tag("(")), ws(expression), ws(tag(")"))),
@@ -233,6 +182,8 @@ pub(crate) fn expression(input: LSpan) -> IResult<LSpan, Expr> {
                         "fby" => Fby,
                         "==" => Eq,
                         "!=" => Neq,
+                        "or" => Or,
+                        "and" => And,
                         _ => return Err("Non supported binary operation"),
                     };
                     Ok(Expr::BinOp {

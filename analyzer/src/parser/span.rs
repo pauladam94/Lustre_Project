@@ -40,6 +40,18 @@ impl PositionEnd for Span {
         }
     }
 }
+pub trait PositionEndNextLine {
+    fn position_end_next_line(&self) -> Position;
+}
+
+impl PositionEndNextLine for Span {
+    fn position_end_next_line(&self) -> Position {
+        Position {
+            line: self.location_line(),
+            character: (self.get_column() + self.fragment().len()) as u32 - 1,
+        }
+    }
+}
 impl ToRange for LocatedSpan<&str> {
     fn to_range(&self) -> Range {
         Range {

@@ -1,98 +1,279 @@
-use crate::parser::{ast::Ast, expression::Expr, literal::Value, node::Node};
+use std::collections::HashMap;
 
-pub trait PropagateConst {
-    fn propagate_const(&mut self);
+use colored::Colorize;
+use lsp_types::{InlayHint, InlayHintLabel, Position};
+
+use crate::{
+    checker::types::{FunctionCallType, FunctionType},
+    parser::{
+        ast::Ast,
+        expression::Expr,
+        literal::Value,
+        node::Node,
+        span::{PositionEnd, Span},
+    },
+};
+
+#[derive(Default)]
+pub struct PropagaterConst {
+    ast: Ast,
+    seen_equations: HashMap<Span, Option<Value>>,
+    hints: Vec<InlayHint>,
 }
 
-impl PropagateConst for Ast {
-    fn propagate_const(&mut self) {
-        for node in self.nodes.iter_mut() {
-            node.propagate_const();
+impl PropagaterConst {
+    pub fn new() -> Self {
+        Self {
+            ast: Ast::new(),
+            seen_equations: HashMap::new(),
+            hints: vec![],
         }
     }
 }
-
-impl PropagateConst for Node {
-    fn propagate_const(&mut self) {
-        for (out, t) in self.outputs.iter() {
-            for (name, expr) in self.let_bindings.iter_mut() {
-                if out == name {
-                    expr.propagate_const();
-                }
-            }
-        }
-        for (name, expr) in self.let_bindings.iter_mut() {
-            expr.propagate_const();
-            match expr.get_value() {
-                None => {}
-                Some(val) => {
-                    // self.replace_variable(val);
-                }
-            }
-            // if expr.is_const() {
-            //     // replace occurence of name
-            // }
-        }
+impl PropagaterConst {
+    fn push_hint(&mut self, position: Position, label: String) {
+        self.hints.push(InlayHint {
+            position,
+            label: InlayHintLabel::String(label),
+            kind: None,
+            text_edits: None,
+            tooltip: None,
+            padding_left: None,
+            padding_right: None,
+            data: None,
+        })
+    }
+}
+impl Ast {
+    pub fn propagate_const(&self) -> (Self, Vec<InlayHint>) {
+        let mut propagater_const = PropagaterConst::new();
+        propagater_const.const_ast(self);
+        (propagater_const.ast, propagater_const.hints)
     }
 }
 
-impl PropagateConst for Expr {
-    fn propagate_const(&mut self) {
-        match self {
+impl PropagaterConst {
+    fn const_expr(&mut self, ast: &Ast, node: &Node, expr: &Expr) -> Expr {
+        match expr {
             Expr::BinOp {
                 lhs,
                 op,
-                span_op: _,
+                span_op,
                 rhs,
             } => {
-                lhs.propagate_const();
-                rhs.propagate_const();
-                use crate::parser::expression::BinOp::*;
+                let lhs = self.const_expr(ast, node, lhs);
+                let rhs = self.const_expr(ast, node, rhs);
+
+                use crate::parser::binop::BinOp::*;
                 match (lhs.get_value(), rhs.get_value()) {
                     (Some(Value::Integer(lv)), Some(Value::Integer(rv))) => match op {
-                        Add => *self = Expr::Lit(Value::Integer(lv + rv)),
-                        Sub => *self = Expr::Lit(Value::Integer(lv - rv)),
-                        Mult => *self = Expr::Lit(Value::Integer(lv * rv)),
-                        Div => *self = Expr::Lit(Value::Integer(lv / rv)),
-                        Fby => {}
-                        Arrow => {}
-                        Eq => *self = Expr::Lit(Value::Bool(lv == rv)),
-                        Neq => *self = Expr::Lit(Value::Bool(lv != rv)),
+                        Add => Expr::Lit(Value::Integer(lv + rv)),
+                        Sub => Expr::Lit(Value::Integer(lv - rv)),
+                        Mult => Expr::Lit(Value::Integer(lv * rv)),
+                        Div => Expr::Lit(Value::Integer(lv / rv)),
+                        Eq => Expr::Lit(Value::Bool(lv == rv)),
+                        Neq => Expr::Lit(Value::Bool(lv != rv)),
+                        _ => expr.clone(),
                     },
                     (Some(Value::Float(lv)), Some(Value::Float(rv))) => match op {
-                        Add => *self = Expr::Lit(Value::Float(lv + rv)),
-                        Sub => *self = Expr::Lit(Value::Float(lv - rv)),
-                        Mult => *self = Expr::Lit(Value::Float(lv * rv)),
-                        Div => *self = Expr::Lit(Value::Float(lv / rv)),
-                        Fby => {}
-                        Arrow => {}
-                        Eq => *self = Expr::Lit(Value::Bool(lv == rv)),
-                        Neq => *self = Expr::Lit(Value::Bool(lv != rv)),
+                        Add => Expr::Lit(Value::Float(lv + rv)),
+                        Sub => Expr::Lit(Value::Float(lv - rv)),
+                        Mult => Expr::Lit(Value::Float(lv * rv)),
+                        Div => Expr::Lit(Value::Float(lv / rv)),
+                        Eq => Expr::Lit(Value::Bool(lv == rv)),
+                        Neq => Expr::Lit(Value::Bool(lv != rv)),
+                        _ => expr.clone(),
                     },
                     (Some(Value::Bool(lv)), Some(Value::Bool(rv))) => match op {
-                        Eq => *self = Expr::Lit(Value::Bool(lv == rv)),
-                        Neq => *self = Expr::Lit(Value::Bool(lv != rv)),
-                        Fby => {}
-                        Arrow => {}
-                        Add => {}
-                        Sub => {}
-                        Mult => {}
-                        Div => {}
+                        Eq => Expr::Lit(Value::Bool(lv == rv)),
+                        Neq => Expr::Lit(Value::Bool(lv != rv)),
+                        _ => expr.clone(),
                     },
-                    (_, _) => {}
+                    (Some(Value::Array(l)), Some(Value::Array(r))) => match op {
+                        Eq => {
+                            for (lv, rv) in l.iter().zip(r.iter()) {
+                                if lv != rv {
+                                    return Expr::Lit(Value::Bool(false));
+                                }
+                            }
+                            Expr::Lit(Value::Bool(true))
+                        }
+                        Neq => todo!(),
+                        Or => todo!(),
+                        And => todo!(),
+                        _ => expr.clone(),
+                    },
+                    (Some(l), None) => Expr::BinOp {
+                        lhs: Box::new(Expr::Lit(l)),
+                        op: op.clone(),
+                        span_op: span_op.clone(),
+                        rhs: Box::new(rhs),
+                    },
+                    (None, Some(r)) => Expr::BinOp {
+                        lhs: Box::new(lhs),
+                        op: op.clone(),
+                        span_op: span_op.clone(),
+                        rhs: Box::new(Expr::Lit(r)),
+                    },
+                    (Some(l), Some(r)) => Expr::BinOp {
+                        lhs: Box::new(Expr::Lit(l)),
+                        op: op.clone(),
+                        span_op: span_op.clone(),
+                        rhs: Box::new(Expr::Lit(r)),
+                    },
+                    (_, _) => expr.clone(),
                 }
             }
-            Expr::UnaryOp { op, rhs } => {
-                rhs.propagate_const();
-            }
-            Expr::Array(exprs) => todo!(),
+            Expr::UnaryOp { op, rhs } => expr.clone(),
+            Expr::Array(exprs) => expr.clone(),
             Expr::FCall { name, args } => {
-                
+                let mut args_are_const = true;
+                let mut const_args = vec![];
+                let mut inputs = vec![];
+
+                for e in args.iter() {
+                    let const_expr = self.const_expr(ast, node, e);
+                    match const_expr.get_value() {
+                        Some(v) => inputs.push(v),
+                        None => {
+                            args_are_const = false;
+                        }
+                    }
+                    const_args.push(const_expr);
+                }
+
+                if !args_are_const {
+                    return Expr::FCall {
+                        name: name.clone(),
+                        args: const_args,
+                    };
+                }
+
+                let func_type = ast
+                    .nodes
+                    .iter()
+                    .fold(None, |acc, node| match acc {
+                        Some(_) => acc,
+                        None => {
+                            if &node.name == name {
+                                let (ftype, _) = FunctionType::get_function_type(node);
+                                Some(ftype)
+                            } else {
+                                None
+                            }
+                        }
+                    })
+                    .unwrap(); // Ok because of type checking
+
+                // unwrap ok because of type checking
+                let call_type = func_type.function_call_type(&inputs).unwrap();
+
+                // Compile & Interpret the function because arguments are constant
+                let mut compile_ast = ast.compile(name.clone());
+                // println!("{} >>\n{}\n", "COMPILE".blue(), compile_ast);
+
+                match call_type {
+                    FunctionCallType::Simple => {
+                        let res = compile_ast.step(inputs);
+                        if res.len() == 1 {
+                            Expr::Lit(res[0].clone())
+                        } else {
+                            Expr::Lit(Value::Array(res))
+                        }
+                    }
+                    FunctionCallType::Array => {
+                        // OK unwrap because of typechecking
+                        let array_inputs = Value::unwrap_array(inputs).unwrap();
+                        let mut array_outputs = vec![];
+                        for _ in 0..array_inputs.len() {
+                            array_outputs.push(vec![])
+                        }
+
+                        for instant in 0..array_inputs[0].len() {
+                            let mut input = vec![];
+                            for pos in 0..array_inputs.len() {
+                                // This crash !
+                                input.push(array_inputs[pos][instant].clone())
+                            }
+
+                            // print!("{instant} >> [ ");
+                            for (i, res) in compile_ast.step(input).into_iter().enumerate() {
+                                // print!("{res} ");
+                                array_outputs[i].push(res)
+                            }
+                            // println!("]");
+                        }
+                        let array_outputs = array_outputs
+                            .into_iter()
+                            .map(|vec| Value::Array(vec))
+                            .collect();
+                        Expr::Lit(Value::Array(array_outputs))
+                    }
+                }
+            }
+            Expr::Variable(var) => match self.const_var(ast, node, var) {
+                Some(val) => Expr::Lit(val),
+                None => expr.clone(),
             },
-            Expr::Variable(span) => {},
-            Expr::Lit(literal) => todo!(),
+            Expr::Lit(_) => expr.clone(),
+            _ => expr.clone(),
+        }
+    }
+
+    fn const_var(&mut self, ast: &Ast, node: &Node, var: &Span) -> Option<Value> {
+        if let Some(val) = self.seen_equations.get(var) {
+            return val.clone();
+        }
+        for (i, (name, expr)) in node.let_bindings.iter().enumerate() {
+            if name == var {
+                self.seen_equations.insert(var.clone(), None);
+                let const_expr = self.const_expr(ast, node, expr);
+                let opt_value = match const_expr.get_value() {
+                    Some(val) => {
+                        let end_semicolon = &node.span_semicolon_equations[i];
+                        let decalage = 5;
+                        self.push_hint(
+                            end_semicolon.position_end(),
+                            format!(
+                                "{:>width$}>> {}",
+                                "",
+                                val,
+                                width = decalage * (end_semicolon.get_column() / decalage + 1)
+                                    - end_semicolon.get_column(),
+                            ),
+                        );
+                        Some(val)
+                    }
+                    None => {
+                        self.ast.push_expr(name.clone(), const_expr);
+                        None
+                    }
+                };
+                self.seen_equations.insert(var.clone(), opt_value.clone());
+                return opt_value;
+            }
+        }
+        None
+    }
+    fn const_node(&mut self, ast: &Ast, node: &Node) {
+        let shell_node = Node::shell_from_node(node);
+        self.ast.nodes.push(shell_node);
+        for (out, t) in node.outputs.iter() {
+            for (index, (name, expr)) in node.let_bindings.iter().enumerate() {
+                if out == name {
+                    self.seen_equations.insert(name.clone(), None);
+                    let e = self.const_expr(ast, node, expr);
+                    self.seen_equations.insert(name.clone(), e.get_value());
+                    self.ast.push_expr(name.clone(), e);
+                }
+            }
+        }
+    }
+
+    pub fn const_ast(&mut self, ast: &Ast) {
+        for node in ast.nodes.iter() {
+            self.seen_equations = HashMap::new();
+            self.const_node(ast, node);
         }
     }
 }
-
-

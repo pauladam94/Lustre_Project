@@ -2,10 +2,12 @@ use crate::{
     diagnostic::ToRange,
     parser::{
         ast::Ast,
-        expression::{BinOp, Expr, UnaryOp},
+        binop::BinOp,
+        expression::Expr,
         literal::Value,
         node::Node,
-        span::{Ident, PositionEnd, Span},
+        span::{Ident, PositionEnd, PositionEndNextLine, Span},
+        unary_op::UnaryOp,
         var_type::VarType,
     },
 };
@@ -14,10 +16,96 @@ use lsp_types::{Diagnostic, DiagnosticSeverity, InlayHint, InlayHintLabel, Posit
 use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
-struct FunctionType {
+pub struct FunctionType {
     inputs: IndexMap<Ident, VarType>,
     outputs: IndexMap<Ident, VarType>,
     vars: HashMap<Ident, VarType>,
+}
+
+#[derive(Debug)]
+pub enum FunctionCallType {
+    Simple,
+    Array,
+}
+impl FunctionType {
+    pub fn function_call_type(self, args: &Vec<Value>) -> Option<FunctionCallType> {
+        let mut res = None;
+        for (arg, (_, input_type)) in args.iter().zip(self.inputs.iter()) {
+            let arg_type = arg.get_type();
+            match res {
+                None => {
+                    if &arg_type == input_type {
+                        res = Some(FunctionCallType::Simple);
+                    } else if arg_type == VarType::Array(Box::new(input_type.clone())) {
+                        res = Some(FunctionCallType::Array);
+                    } else {
+                        return None;
+                    }
+                }
+                Some(FunctionCallType::Simple) => {
+                    if &arg_type != input_type {
+                        return None;
+                    }
+                }
+                Some(FunctionCallType::Array) => {
+                    if arg_type != VarType::Array(Box::new(input_type.clone())) {
+                        return None;
+                    }
+                }
+            }
+        }
+        res
+    }
+    pub fn get_function_type(node: &Node) -> (Self, Vec<Diagnostic>) {
+        let mut diags = vec![];
+        let mut func = FunctionType {
+            inputs: IndexMap::new(),
+            outputs: IndexMap::new(),
+            vars: HashMap::new(),
+        };
+        for (name, t) in node.inputs.iter() {
+            if func.inputs.contains_key(name) {
+                diags.push(Diagnostic {
+                    message: "Input name already used.".to_string(),
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    range: name.to_range(),
+                    ..Default::default()
+                })
+            } else {
+                func.inputs.insert(name.clone(), t.clone());
+            }
+        }
+        for (name, t) in node.outputs.iter() {
+            if func.outputs.contains_key(name) {
+                diags.push(Diagnostic {
+                    message: "Output name already used.".to_string(),
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    range: name.to_range(),
+                    ..Default::default()
+                })
+            } else {
+                func.outputs.insert(name.clone(), t.clone());
+            }
+        }
+        for (name, t) in node.vars.iter() {
+            if func.vars.contains_key(name) {
+                diags.push(Diagnostic {
+                    message: "Var name already used.".to_string(),
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    range: name.to_range(),
+                    ..Default::default()
+                })
+            } else {
+                func.vars.insert(name.clone(), t.clone());
+            }
+        }
+        // Function with no arguments are function
+        // of type 'unit -> [return types]'
+        if func.inputs.is_empty() {
+            func.inputs.insert(node.name.clone(), VarType::Unit);
+        }
+        (func, diags)
+    }
 }
 
 #[derive(Default)]
@@ -51,7 +139,7 @@ impl CheckerInfo {
     }
 }
 
-pub(crate) fn numeral_string<'a>(i: usize) -> String {
+pub(crate) fn numeral_string(i: usize) -> String {
     if i == 0 {
         "1st".to_string()
     } else {
@@ -83,7 +171,7 @@ impl CheckerInfo {
             }
             Expr::BinOp {
                 lhs,
-                op: BinOp::Eq | BinOp::Neq,
+                op: BinOp::Eq | BinOp::Neq | BinOp::Or | BinOp::And,
                 span_op,
                 rhs,
             } => {
@@ -206,6 +294,9 @@ impl CheckerInfo {
             });
             return None;
         }
+        // A function call can be lifted
+        // A function of type 'int -> int'
+        // can be lifted to a function of type '[int] -> [int]'
         enum FunctionCallType {
             Unknown,
             Simple,
@@ -329,16 +420,13 @@ impl CheckerInfo {
     fn get_type_var(&mut self, node: &Node, var: &Span) -> Option<VarType> {
         for (name, expr) in node.let_bindings.iter() {
             if name == var {
-                let type_equation = self.get_type_equation(node, expr);
-                match &type_equation {
-                    Some(t) => self.push_hint(name.position_end(), format!(" : {t}")),
-                    None => {}
-                }
-                return type_equation;
+                let var_type = self.get_type_equation(node, expr);
+                self.local_types.insert(name.clone(), var_type.clone());
+                return var_type;
             }
         }
         self.push_diagnostic(Diagnostic {
-            message: format!("No equation found for '{}' (inside get_type_var)", var),
+            message: format!("No equation found for '{}'", var),
             severity: Some(DiagnosticSeverity::ERROR),
             range: var.to_range(),
             ..Default::default()
@@ -346,7 +434,7 @@ impl CheckerInfo {
         None
     }
 
-    /// Setup Local Type in the Checker
+    /// Setup partial Local Type in the Checker
     /// - Check that variables are not defined twice in equations
     fn setup_local_types(&mut self, node: &Node) {
         // insert all inputs types
@@ -354,7 +442,7 @@ impl CheckerInfo {
             self.local_types.insert(name.clone(), Some(t.clone()));
         }
 
-        for (name, expr) in node.let_bindings.iter() {
+        for (name, _) in node.let_bindings.iter() {
             if self.local_types.contains_key(name) {
                 self.diagnostics.push(Diagnostic {
                     message: format!("Equation for '{}' already defined.", name),
@@ -407,48 +495,12 @@ impl CheckerInfo {
         }
     }
 
+    // Get the type of each nodes definition
     fn get_nodes_types(&mut self, x: &Ast) {
         for node in x.nodes.iter() {
-            let mut func = FunctionType {
-                inputs: IndexMap::new(),
-                outputs: IndexMap::new(),
-                vars: HashMap::new(),
-            };
-            for (name, t) in node.inputs.iter() {
-                if func.inputs.contains_key(name) {
-                    self.push_diagnostic(Diagnostic {
-                        message: "Input name already used.".to_string(),
-                        severity: Some(DiagnosticSeverity::ERROR),
-                        range: name.to_range(),
-                        ..Default::default()
-                    })
-                } else {
-                    func.inputs.insert(name.clone(), t.clone());
-                }
-            }
-            for (name, t) in node.outputs.iter() {
-                if func.outputs.contains_key(name) {
-                    self.push_diagnostic(Diagnostic {
-                        message: "Output name already used.".to_string(),
-                        severity: Some(DiagnosticSeverity::ERROR),
-                        range: name.to_range(),
-                        ..Default::default()
-                    })
-                } else {
-                    func.outputs.insert(name.clone(), t.clone());
-                }
-            }
-            for (name, t) in node.vars.iter() {
-                if func.vars.contains_key(name) {
-                    self.push_diagnostic(Diagnostic {
-                        message: "Var name already used.".to_string(),
-                        severity: Some(DiagnosticSeverity::ERROR),
-                        range: name.to_range(),
-                        ..Default::default()
-                    })
-                } else {
-                    func.vars.insert(name.clone(), t.clone());
-                }
+            let (func, diags) = FunctionType::get_function_type(node);
+            for diag in diags {
+                self.push_diagnostic(diag);
             }
             if self.nodes_types.contains_key(&node.name) {
                 self.push_diagnostic(Diagnostic {
@@ -460,11 +512,7 @@ impl CheckerInfo {
                     range: node.name.to_range(),
                     ..Default::default()
                 });
-            }
-            // TODO better ?
-            // Add Unit type for function with no inputs
-            if func.inputs.is_empty() {
-                func.inputs.insert(node.name.clone(), VarType::Unit);
+                continue;
             }
             self.nodes_types.insert(node.name.clone(), func);
         }
@@ -475,6 +523,14 @@ impl CheckerInfo {
 
         for node in x.nodes.iter() {
             self.check_node(node);
+            for (var, _) in node.let_bindings.iter() {
+                match self.local_types.get(var) {
+                    Some(Some(t)) => {
+                        self.push_hint(var.position_end(), format!(" : {t}"));
+                    }
+                    Some(None) | None => {}
+                }
+            }
         }
     }
 }

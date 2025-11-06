@@ -1,13 +1,8 @@
 use crate::{
     diagnostic::ToRange,
     parser::{
-        ast::Ast,
-        expression::{BinOp, Expr, UnaryOp},
-        ftag::Tag,
-        literal::Value,
-        node::Node,
-        span::Span,
-        var_type::VarType,
+        ast::Ast, binop::BinOp, expression::Expr, ftag::Tag, literal::Value, node::Node,
+        span::Span, unary_op::UnaryOp, var_type::VarType,
     },
     token_type::TokenType,
 };
@@ -25,6 +20,7 @@ pub(crate) trait Visitor {
             Value::Integer(_) => {}
             Value::Float(_) => {}
             Value::Bool(_) => {}
+            Value::Array(values) => {}
         }
     }
     fn visit_tag(&mut self, _: &Tag) {}
@@ -108,7 +104,7 @@ impl Visitor for DocumentHighlightVisitor {
 
 pub(crate) struct SemanticTokenVisitor {
     tokens: Vec<SemanticToken>,
-    current_type: Option<u32>,
+    _current_type: Option<u32>,
 }
 
 impl SemanticTokenVisitor {
@@ -142,7 +138,7 @@ impl SemanticTokenVisitor {
     pub(crate) fn new() -> Self {
         Self {
             tokens: vec![],
-            current_type: None,
+            _current_type: None,
         }
     }
 }

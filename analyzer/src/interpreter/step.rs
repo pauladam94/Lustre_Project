@@ -1,9 +1,4 @@
-use crate::interpreter::compiled_ast::CompiledNode;
+use crate::{interpreter::compiled_ast::CompiledNode, parser::literal::Value};
 
 
 
-impl CompiledNode {
-    pub fn step() {
-        todo!()
-    }
-}

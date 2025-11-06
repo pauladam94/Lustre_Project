@@ -30,12 +30,13 @@ pub(crate) struct Node {
     pub(crate) vars: Vec<(Ident, VarType)>,
     pub(crate) outputs: Vec<(Ident, VarType)>,
     pub(crate) let_bindings: Vec<(Ident, Expr)>,
+    pub(crate) span_semicolon_equations: Vec<Span>,
 }
 
 impl std::fmt::Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if let Some(t) = &self.tag {
-            write!(f, "#[{t}]")?;
+            write!(f, "#[{t}]\n")?;
         }
         write!(f, "node {}(", self.name)?;
         for (i, (s, t)) in self.inputs.iter().enumerate() {
@@ -63,6 +64,39 @@ impl std::fmt::Display for Node {
 }
 
 impl Node {
+    pub fn push_expr(&mut self, name: Span, expr: Expr) {
+        self.let_bindings.push((name, expr));
+    }
+    pub fn shell_from_node(&self) -> Self {
+        let Self {
+            span_node,
+            span_returns,
+            span_let,
+            span_tel,
+            span_semicolon,
+            tag,
+            name,
+            inputs,
+            vars,
+            outputs,
+            let_bindings: _,
+            span_semicolon_equations,
+        } = self;
+        Self {
+            span_node: span_node.clone(),
+            span_returns: span_returns.clone(),
+            span_let: span_let.clone(),
+            span_tel: span_tel.clone(),
+            span_semicolon: span_semicolon.clone(),
+            tag: tag.clone(),
+            name: name.clone(),
+            inputs: inputs.clone(),
+            vars: vars.clone(),
+            outputs: outputs.clone(),
+            let_bindings: vec![],
+            span_semicolon_equations: span_semicolon_equations.clone(),
+        }
+    }
     pub fn replace_variable(&mut self, val: Value) {
         for (_, node) in self.let_bindings.iter_mut() {}
     }
@@ -113,7 +147,7 @@ pub(crate) fn node(input: LSpan) -> IResult<LSpan, Node> {
         .map(
             |(
                 (tag, span_node, name, inputs, span_returns, outputs, span_semicolon),
-                (span_let, let_bindings, span_tel),
+                (span_let, (let_bindings, span_semicolon_equations), span_tel),
             )| {
                 Node {
                     tag,
@@ -122,6 +156,7 @@ pub(crate) fn node(input: LSpan) -> IResult<LSpan, Node> {
                     inputs,
                     outputs,
                     let_bindings,
+                    span_semicolon_equations,
 
                     span_node,
                     span_returns,

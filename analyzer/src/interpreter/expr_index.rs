@@ -14,4 +14,7 @@ impl ExprIndex {
     pub fn to_usize(&self) -> usize {
         self.0 as usize
     }
+    pub fn offset_index(&mut self, offset: usize) {
+        *self = Self(self.0 + offset as u32);
+    }
 }

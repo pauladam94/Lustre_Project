@@ -11,6 +11,8 @@ pub(crate) mod literal;
 pub(crate) mod node;
 pub(crate) mod var_type;
 pub(crate) mod white_space;
+pub(crate) mod binop;
+pub(crate) mod unary_op;
 
 pub mod span;
 pub mod test;

@@ -31,15 +31,35 @@ pub enum Value {
     Integer(i64),
     Float(f64),
     Bool(bool),
+    Array(Vec<Value>),
 }
 
 impl Value {
+    pub fn unwrap_array(inputs: Vec<Value>) -> Option<Vec<Vec<Value>>> {
+        let mut res = vec![];
+        for input in inputs.into_iter() {
+            match input {
+                Value::Array(values) => res.push(values),
+                _ => return None,
+            }
+        }
+        Some(res)
+    }
+
     pub fn get_type(&self) -> VarType {
         match self {
             Value::Unit => VarType::Unit,
             Value::Integer(_) => VarType::Int,
             Value::Float(_) => VarType::Float,
             Value::Bool(_) => VarType::Bool,
+            Value::Array(v) => {
+                // Check more things maybe
+                if v.is_empty() {
+                    VarType::Array(Box::new(VarType::Unit))
+                } else {
+                    VarType::Array(Box::new(v[0].get_type()))
+                }
+            }
         }
     }
 }
@@ -57,6 +77,20 @@ impl std::fmt::Display for Value {
             Value::Integer(i) => write!(f, "{i}"),
             Value::Float(fl) => write!(f, "{fl}"),
             Value::Bool(b) => write!(f, "{b}"),
+            Value::Array(vec) => {
+                if vec.is_empty() {
+                    write!(f, "{}", VarType::Unit)
+                } else {
+                    write!(f, "[")?;
+                    for (i, val) in vec.iter().enumerate() {
+                        write!(f, "{val}")?;
+                        if i != vec.len() - 1 {
+                            write!(f, ", ")?;
+                        }
+                    }
+                    write!(f, "]")
+                }
+            }
         }
     }
 }
