@@ -1,3 +1,5 @@
+use colored::Colorize;
+
 use crate::{
     interpreter::{compiled_expr::CompiledExpr, expr_index::ExprIndex},
     parser::literal::Value,
@@ -16,6 +18,7 @@ pub struct CompiledNode {
 
 impl std::fmt::Display for CompiledNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Instant = {}", self.instant)?;
         writeln!(f, "loop {{")?;
         for ((i, expr), value) in self.vec.iter().enumerate().zip(self.values.iter()) {
             write!(
@@ -118,6 +121,7 @@ impl CompiledNode {
         self.instant = 0;
     }
     pub fn step(&mut self, inputs: Vec<Value>) -> Vec<Value> {
+        println!("{} >>\n{}\n", "COMPILE".blue(), self);
         let Self {
             vec,
             info,
@@ -126,13 +130,24 @@ impl CompiledNode {
             values,
             instant,
         } = self;
-        for (i, (index, val)) in inputs_index.iter().zip(inputs.into_iter()).enumerate() {
+        for (index, val) in inputs_index.iter().zip(inputs.into_iter()) {
             values[index.to_usize()] = Some(val);
         }
         for (pos, expr) in vec.iter().enumerate().rev() {
             values[pos] = expr.compute(values, instant);
         }
-
+        println!(
+            "{} >>\n{}\n",
+            "COMPILE".blue(),
+            Self {
+                vec: vec.clone(),
+                info: info.clone(),
+                inputs: inputs_index.clone(),
+                outputs: outputs_index.clone(),
+                values: values.clone(),
+                instant: instant.clone(),
+            }
+        );
         let mut res = vec![];
         for output in outputs_index.iter() {
             res.push(values[output.to_usize()].clone().unwrap());

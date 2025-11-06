@@ -17,18 +17,14 @@ pub fn ok_interpretation(input: &str) {
 
             // Verify it is a test of type (unit -> bool)
             // More than One equation
-            if equations.len() != 1
-                || equations[0].0.fragment() != node.outputs[0].0.fragment()
+            if equations.len() != 1 // has one equation
+                || equations[0].0.fragment() != node.outputs[0].0.fragment() // une seule equation
                 || equations[0].1 != Expr::Lit(Value::Bool(true))
             {
                 assert!(false);
             }
         }
     }
-
-    let compile_ast = build_ast.compile(todo!());
-
-    assert!(false);
 }
 
 #[cfg(test)]
@@ -37,7 +33,7 @@ mod test {
 
     #[test]
 
-    fn integer_operation_propagate_ok() {
+    fn integer_operation_propagate_no_test_ok() {
         ok_interpretation(
             "
 node f() returns (x : int);
@@ -59,9 +55,27 @@ tel
 #[test]
 node verify_5_first_value() returns (z: bool);
 let
-    z = fibo([(), (), (), (), ()]) == [1, 1, 2, 3, 5];        
+    z = fibo([(), (), (), (), ()]) == [2, 3, 5, 8, 13];        
 tel
         ",
+        );
+    }
+    #[test]
+    fn fibonacci_11_ok() {
+        ok_interpretation(
+            "
+node fibo() returns (x : int);
+let
+	x_1 = 1 -> pre x;
+	x_0 = 1 -> pre x_1;
+	x = x_0 + x_1;
+tel
+
+#[test]
+node verify_5_first_value() returns (z : bool);
+let
+	z = fibo([(), (), (), (), ()]) == [2, 3, 5, 8, 13];
+tel",
         );
     }
     #[test]
@@ -78,7 +92,7 @@ tel
 #[test]
 node verify_5_first_value() returns (z: bool);
 let
-    z = fibo([(), (), (), (), ()]) == [1, 1, 2, 3, 5];        
+    z = fibo([(), (), (), (), ()]) == [2, 3, 5, 8, 13];        
 tel
         ",
         );
@@ -104,6 +118,49 @@ tel
         ",
         );
     }
+
+    #[test]
+    fn fibonacci_4_ok() {
+        ok_interpretation(
+            "
+node fibo() returns (z : int);
+let
+	x0 = pre z;
+	x1 = pre pre z;
+	add = x0 + x1;
+	z = 1 -> (1 -> add);
+tel
+
+#[test]
+node test2() returns (z : bool);
+let
+	lhs = fibo([(), (), (), ()]);
+	rhs = [2, 4, 6];
+	z = lhs == rhs;
+tel",
+        );
+    }
+    #[test]
+    fn fibonacci_5_ok() {
+        ok_interpretation(
+            "
+node fibo() returns (z : int);
+let
+	x0 = pre z;
+	x1 = pre pre z;
+	z = 1 -> (1 -> (x0 + x1));
+tel
+
+#[test]
+node test2() returns (z : bool);
+let
+	lhs = fibo([(), (), (), ()]);
+	rhs = [2, 4, 6];
+	z = lhs == rhs;
+tel",
+        );
+    }
+
     #[test]
     fn has_been_true_ok() {
         ok_interpretation(

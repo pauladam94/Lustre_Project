@@ -17,11 +17,11 @@ pub enum BinOp {
 impl Precedence for BinOp {
     fn precedence(&self) -> usize {
         match self {
-            BinOp::Eq => 5,
-            BinOp::Neq => 5,
-            BinOp::Or => 6,
-            BinOp::And => 6,
-            BinOp::Arrow => 4,
+            BinOp::Arrow => 5,
+            BinOp::Eq => 4,
+            BinOp::Neq => 4,
+            BinOp::Or => 4,
+            BinOp::And => 4,
             BinOp::Add => 3,
             BinOp::Sub => 3,
             BinOp::Mult => 2,

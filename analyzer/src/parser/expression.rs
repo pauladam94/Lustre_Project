@@ -59,9 +59,7 @@ impl Expr {
                 let mut const_exprs = vec![];
                 for expr in exprs.iter() {
                     match expr.get_value() {
-                        Some(value_expr) => {
-                            const_exprs.push(value_expr)
-                        }
+                        Some(value_expr) => const_exprs.push(value_expr),
                         None => return None,
                     }
                 }
@@ -152,6 +150,7 @@ pub(crate) fn expression(input: LSpan) -> IResult<LSpan, Expr> {
         alt((
             binary_op(Mult.precedence(), Assoc::Left, ws(tag("*"))),
             binary_op(Div.precedence(), Assoc::Left, ws(tag("/"))),
+            // TODO Assoc::Right WARNING pretty printing expression
             binary_op(Arrow.precedence(), Assoc::Left, ws(tag("->"))),
             binary_op(Add.precedence(), Assoc::Left, ws(tag("+"))),
             binary_op(Sub.precedence(), Assoc::Left, ws(tag("-"))),

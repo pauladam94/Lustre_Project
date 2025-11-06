@@ -101,14 +101,13 @@ impl CompiledExpr {
         }
     }
 
-    pub fn compute(
-        &self,
-        values: &Vec<Option<Value>>,
-        instant: &u64,
-    ) -> Option<Value> {
+    pub fn compute(&self, values: &Vec<Option<Value>>, instant: &u64) -> Option<Value> {
         match self {
-            CompiledExpr::Input => {None}
-            CompiledExpr::Output => unreachable!(),
+            CompiledExpr::Input => None,
+            CompiledExpr::Output => {
+                // TODO this is reachable AHAH
+                unreachable!()
+            }
             CompiledExpr::Set { src } => values[src.to_usize()].clone(),
             CompiledExpr::Get { src } => values[src.to_usize()].clone(),
             CompiledExpr::BinOp { lhs, op, rhs } => {

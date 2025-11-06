@@ -107,7 +107,6 @@ impl Data {
     }
     pub fn inlay_hint(&self) -> Result<Option<Vec<InlayHint>>> {
         let mut hints = self.type_hint.clone();
-        // TODO put again
         hints.extend(self.test_hint.iter().cloned());
         Ok(Some(hints))
     }

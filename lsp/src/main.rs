@@ -33,11 +33,11 @@ impl LanguageServer for Backend {
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
                 )),
-                document_highlight_provider: Some(OneOf::Right(DocumentHighlightOptions {
-                    work_done_progress_options: WorkDoneProgressOptions {
-                        work_done_progress: Some(true),
-                    },
-                })),
+                // document_highlight_provider: Some(OneOf::Right(DocumentHighlightOptions {
+                //     work_done_progress_options: WorkDoneProgressOptions {
+                //         work_done_progress: Some(true),
+                //     },
+                // })),
                 diagnostic_provider: Some(DiagnosticServerCapabilities::Options(
                     DiagnosticOptions {
                         identifier: None,

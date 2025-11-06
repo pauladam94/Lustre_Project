@@ -31,10 +31,18 @@ pub enum Value {
     Integer(i64),
     Float(f64),
     Bool(bool),
+    Tuple(Vec<Value>),
     Array(Vec<Value>),
 }
 
 impl Value {
+    pub fn tuple_from_vec(v: Vec<Value>) -> Self {
+        if v.len() == 1 {
+            v[0].clone()
+        } else {
+            Value::Tuple(v)
+        }
+    }
     pub fn unwrap_array(inputs: Vec<Value>) -> Option<Vec<Vec<Value>>> {
         let mut res = vec![];
         for input in inputs.into_iter() {
@@ -52,6 +60,13 @@ impl Value {
             Value::Integer(_) => VarType::Int,
             Value::Float(_) => VarType::Float,
             Value::Bool(_) => VarType::Bool,
+            Value::Tuple(v) => {
+                if v.is_empty() {
+                    VarType::Unit
+                } else {
+                    VarType::Tuple(v.iter().map(|v| v.get_type()).collect())
+                }
+            }
             Value::Array(v) => {
                 // Check more things maybe
                 if v.is_empty() {
@@ -77,9 +92,23 @@ impl std::fmt::Display for Value {
             Value::Integer(i) => write!(f, "{i}"),
             Value::Float(fl) => write!(f, "{fl}"),
             Value::Bool(b) => write!(f, "{b}"),
-            Value::Array(vec) => {
+            Value::Tuple(vec) => {
                 if vec.is_empty() {
                     write!(f, "{}", VarType::Unit)
+                } else {
+                    write!(f, "(")?;
+                    for (i, val) in vec.iter().enumerate() {
+                        write!(f, "{val}")?;
+                        if i != vec.len() - 1 {
+                            write!(f, ", ")?;
+                        }
+                    }
+                    write!(f, ")")
+                }
+            }
+            Value::Array(vec) => {
+                if vec.is_empty() {
+                    write!(f, "[]")
                 } else {
                     write!(f, "[")?;
                     for (i, val) in vec.iter().enumerate() {

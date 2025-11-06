@@ -118,7 +118,7 @@ impl Compiler {
                 op: UnaryOp::Pre,
                 rhs,
             } => {
-                let res = self.ast.push_back_expr(CompiledExpr::Output, info);
+                // let res = self.ast.push_back_expr(CompiledExpr::Output, info);
                 self.compile_pre(ast, node, inputs, outputs, vars, rhs)
             }
             Expr::UnaryOp { op, rhs } => {

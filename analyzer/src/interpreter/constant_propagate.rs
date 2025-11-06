@@ -170,44 +170,41 @@ impl PropagaterConst {
 
                 // Compile & Interpret the function because arguments are constant
                 let mut compile_ast = ast.compile(name.clone());
-                // println!("{} >>\n{}\n", "COMPILE".blue(), compile_ast);
+                println!("{} >>\n{}\n", "COMPILE".blue(), compile_ast);
 
                 match call_type {
                     FunctionCallType::Simple => {
-                        let res = compile_ast.step(inputs);
-                        if res.len() == 1 {
-                            Expr::Lit(res[0].clone())
-                        } else {
-                            Expr::Lit(Value::Array(res))
-                        }
+                        Expr::Lit(Value::tuple_from_vec(compile_ast.step(inputs)))
                     }
                     FunctionCallType::Array => {
                         // OK unwrap because of typechecking
                         let array_inputs = Value::unwrap_array(inputs).unwrap();
-                        let mut array_outputs = vec![];
-                        for _ in 0..array_inputs.len() {
-                            array_outputs.push(vec![])
-                        }
+                        // We know this is ok because no function has 0 arguments (always at least unit)
+                        let number_steps = array_inputs[0].len();
+                        let number_inputs = array_inputs.len();
 
-                        for instant in 0..array_inputs[0].len() {
+                        let mut array_outputs = vec![];
+
+                        for instant in 0..number_steps {
                             let mut input = vec![];
-                            for pos in 0..array_inputs.len() {
+                            for pos in 0..number_inputs {
                                 // This crash !
                                 input.push(array_inputs[pos][instant].clone())
                             }
 
-                            // print!("{instant} >> [ ");
                             for (i, res) in compile_ast.step(input).into_iter().enumerate() {
-                                // print!("{res} ");
+                                if instant == 0 {
+                                    array_outputs.push(vec![]);
+                                }
                                 array_outputs[i].push(res)
                             }
-                            // println!("]");
                         }
-                        let array_outputs = array_outputs
-                            .into_iter()
-                            .map(|vec| Value::Array(vec))
-                            .collect();
-                        Expr::Lit(Value::Array(array_outputs))
+                        Expr::Lit(Value::tuple_from_vec(
+                            array_outputs
+                                .into_iter()
+                                .map(|vec| Value::Array(vec))
+                                .collect(),
+                        ))
                     }
                 }
             }

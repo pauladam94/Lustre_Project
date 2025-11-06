@@ -12,7 +12,9 @@ use crate::{
     },
 };
 use indexmap::IndexMap;
-use lsp_types::{Diagnostic, DiagnosticSeverity, InlayHint, InlayHintLabel, Position};
+use lsp_types::{
+    Diagnostic, DiagnosticSeverity, InlayHint, InlayHintKind, InlayHintLabel, Position,
+};
 use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
@@ -125,11 +127,11 @@ impl CheckerInfo {
     fn push_diagnostic(&mut self, diag: Diagnostic) {
         self.diagnostics.push(diag)
     }
-    fn push_hint(&mut self, position: Position, label: String) {
+    fn push_hint(&mut self, position: Position, label: String, kind: Option<InlayHintKind>) {
         self.hints.push(InlayHint {
             position,
             label: InlayHintLabel::String(label),
-            kind: None,
+            kind,
             text_edits: None,
             tooltip: None,
             padding_left: None,
@@ -157,16 +159,21 @@ impl CheckerInfo {
             } => {
                 let lt = self.get_type_equation(node, lhs)?;
                 let rt = self.get_type_equation(node, rhs)?;
-                if lt == rt {
-                    Some(lt)
-                } else {
-                    self.push_diagnostic(Diagnostic {
-                        message: format!("Got type '{}' on the left and '{}' on the right\n but expected to have the same type.", lt, rt),
-                        severity: Some(DiagnosticSeverity::ERROR),
-                        range: span_op.to_range(),
-                        ..Default::default()
-                    });
-                    None
+                let message = format!(
+                    "Got type '{}' on the left and '{}' on the right\n but expected to have the same type.",
+                    lt, rt
+                );
+                match lt.merge(rt) {
+                    Some(t) => Some(t),
+                    None => {
+                        self.push_diagnostic(Diagnostic {
+                            message,
+                            severity: Some(DiagnosticSeverity::ERROR),
+                            range: span_op.to_range(),
+                            ..Default::default()
+                        });
+                        None
+                    }
                 }
             }
             Expr::BinOp {
@@ -197,8 +204,21 @@ impl CheckerInfo {
             } => {
                 let lt = self.get_type_equation(node, lhs)?;
                 let rt = self.get_type_equation(node, rhs)?;
-                if lt == rt {
-                    Some(lt)
+                // TODO 'int -> pre int' should return type 'int'
+                if lt.contains_pre() {
+                    self.push_diagnostic(Diagnostic {
+                        message: format!(
+                            "Got type '{}' which is not initialized at first instant.",
+                            lt
+                        ),
+                        severity: Some(DiagnosticSeverity::ERROR),
+                        range: span_op.to_range(),
+                        ..Default::default()
+                    });
+                    return None;
+                }
+                if lt.equal_without_pre(&rt) {
+                    Some(rt.remove_one_pre())
                 } else {
                     self.push_diagnostic(Diagnostic {
                         message: format!("Got type '{}' on the left and '{}' on the right\n but expected to have the same type.", lt, rt),
@@ -526,7 +546,11 @@ impl CheckerInfo {
             for (var, _) in node.let_bindings.iter() {
                 match self.local_types.get(var) {
                     Some(Some(t)) => {
-                        self.push_hint(var.position_end(), format!(" : {t}"));
+                        self.push_hint(
+                            var.position_end(),
+                            format!(" : {t}"),
+                            Some(InlayHintKind::TYPE),
+                        );
                     }
                     Some(None) | None => {}
                 }

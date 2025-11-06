@@ -14,15 +14,7 @@ pub(crate) trait Visitor {
 
     fn visit_span(&mut self, x: &Span) {}
 
-    fn visit_literal(&mut self, x: &Value) {
-        match x {
-            Value::Unit => {}
-            Value::Integer(_) => {}
-            Value::Float(_) => {}
-            Value::Bool(_) => {}
-            Value::Array(values) => {}
-        }
-    }
+    fn visit_literal(&mut self, x: &Value) {}
     fn visit_tag(&mut self, _: &Tag) {}
     fn visit_var_type(&mut self, _: &VarType) {}
 
