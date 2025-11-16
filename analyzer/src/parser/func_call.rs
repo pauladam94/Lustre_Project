@@ -15,7 +15,6 @@ pub(crate) fn func_call(input: LSpan) -> IResult<LSpan, (Span, Vec<Expr>)> {
             opt(ws(expression)),
         )
             .map(|(mut v, e)| {
-                
                 // TODO
                 // Add unit as empty argument
                 // if v.is_empty() {

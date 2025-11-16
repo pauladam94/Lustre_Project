@@ -7,21 +7,41 @@ use crate::parser::{
 };
 use nom::Parser;
 use nom::combinator::opt;
-use nom::multi::many0;
+use nom::multi::{many0, many1};
 use nom::sequence::terminated;
 use nom::{IResult, bytes::tag, sequence::separated_pair};
 
-fn arg(input: LSpan) -> IResult<LSpan, (Ident, VarType)> {
-    separated_pair(ws(identifier), ws(tag(":")), ws(var_type)).parse(input)
+fn arg(input: LSpan) -> IResult<LSpan, (Vec<Ident>, VarType)> {
+    separated_pair(
+        (
+            many0(terminated(ws(identifier), ws(tag(",")))),
+            ws(identifier),
+        )
+            .map(|(mut v, x)| {
+                v.push(x);
+                v
+            }),
+        ws(tag(":")),
+        ws(var_type),
+    )
+    .parse(input)
 }
 
 pub(crate) fn args(input: LSpan) -> IResult<LSpan, Vec<(Ident, VarType)>> {
     (many0(terminated(ws(arg), ws(tag(",")))), opt(ws(arg)))
-        .map(|(mut l, v)| {
-            if let Some(v) = v {
-                l.push(v);
+        .map(|(l, v)| {
+            let mut res = vec![];
+            for (names, t) in l {
+                for name in names {
+                    res.push((name, t.clone()))
+                }
             }
-            l
+            if let Some((names, t)) = v {
+                for name in names {
+                    res.push((name, t.clone()))
+                }
+            }
+            res
         })
         .parse(input)
 }

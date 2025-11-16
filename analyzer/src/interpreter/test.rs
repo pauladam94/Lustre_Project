@@ -6,7 +6,7 @@ use colored::Colorize;
 
 pub fn ok_interpretation(input: &str) {
     ok_check(input);
-    let (_, mut build_ast) = ast(LSpan::new(input)).unwrap();
+    let (_, build_ast) = ast(LSpan::new(input)).unwrap();
 
     let (const_ast, _) = build_ast.propagate_const();
     println!("{}\n{}", ">> Propagate Constant :".blue(), const_ast);
@@ -112,7 +112,7 @@ tel
 node verify_5_first_value() returns (z: bool);
 let
     lhs =  fibo([(), (), (), (), ()]);
-    rhs = [1, 1, 2, 3, 5];
+    rhs = [2, 3, 5, 8, 13];
     z = lhs == rhs;        
 tel
         ",
@@ -120,61 +120,19 @@ tel
     }
 
     #[test]
-    fn fibonacci_4_ok() {
-        ok_interpretation(
-            "
-node fibo() returns (z : int);
-let
-	x0 = pre z;
-	x1 = pre pre z;
-	add = x0 + x1;
-	z = 1 -> (1 -> add);
-tel
-
-#[test]
-node test2() returns (z : bool);
-let
-	lhs = fibo([(), (), (), ()]);
-	rhs = [2, 4, 6];
-	z = lhs == rhs;
-tel",
-        );
-    }
-    #[test]
-    fn fibonacci_5_ok() {
-        ok_interpretation(
-            "
-node fibo() returns (z : int);
-let
-	x0 = pre z;
-	x1 = pre pre z;
-	z = 1 -> (1 -> (x0 + x1));
-tel
-
-#[test]
-node test2() returns (z : bool);
-let
-	lhs = fibo([(), (), (), ()]);
-	rhs = [2, 4, 6];
-	z = lhs == rhs;
-tel",
-        );
-    }
-
-    #[test]
     fn has_been_true_ok() {
         ok_interpretation(
             "
-node id(x, y : int) returns (a, b : int);
+node has_been_true(a : bool) returns (z: bool);
 let
-    a = x;
-    b = y;
+    z = (false fby z) or a;
 tel
 
 #[test]
 node test() returns (z: bool);
 let
-    z = has_been_true([false, true, true]) == [false, true, true];        
+    z = has_been_true([false, true, true, false, false, true]) ==
+                      [false, true, true, true, true, true];        
 tel
         ",
         );
@@ -195,6 +153,46 @@ let
 	rhs = [2, 4, 6];
 	b = lhs == rhs;
 tel",
+        );
+    }
+
+    #[test]
+    fn id_ok() {
+        ok_interpretation(
+            "
+node id(x, y: int) returns (a, b: int);
+let
+    a = x;
+    b = y;
+tel
+#[test]
+node test() returns (b : bool);
+let
+    lhs = ([1, 2, 3, 4], [2, 4, 6, 8]);
+    rhs = id([1, 2, 3, 4], [2, 4, 6, 8]);
+    b = lhs == rhs;
+tel
+            ",
+        );
+    }
+    #[test]
+    fn swith_ok() {
+        ok_interpretation(
+            "
+node switch(x, y : int) returns (a, b : int);
+let
+    a = y;
+    b = x;
+tel
+
+#[test]
+node test() returns (z: bool);
+let
+    lhs = ([2, 4, 6, 8], [1, 2, 3, 4]);
+    rhs = id([1, 2, 3, 4], [2, 4, 6, 8]);
+    b = lhs == rhs;
+tel
+",
         );
     }
 }

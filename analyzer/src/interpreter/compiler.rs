@@ -8,6 +8,7 @@ use colored::Colorize;
 
 struct Compiler {
     ast: CompiledNode,
+    // SET operation that has to be done at first
     sets: Vec<CompiledExpr>,
 }
 
@@ -116,12 +117,17 @@ impl Compiler {
             }
             Expr::UnaryOp {
                 op: UnaryOp::Pre,
+                span_op: _,
                 rhs,
             } => {
                 // let res = self.ast.push_back_expr(CompiledExpr::Output, info);
                 self.compile_pre(ast, node, inputs, outputs, vars, rhs)
             }
-            Expr::UnaryOp { op, rhs } => {
+            Expr::UnaryOp {
+                op,
+                span_op: _,
+                rhs,
+            } => {
                 let irhs = self.compile_expr(ast, node, inputs, outputs, vars, rhs);
                 self.ast
                     .push_back_expr(CompiledExpr::UnaryOp { op: *op, rhs: irhs }, info)

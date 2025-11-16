@@ -5,26 +5,8 @@ use nom::bytes::complete::tag;
 use nom::combinator::value;
 use nom::{IResult, Parser};
 
-// #[derive(Clone, Debug, PartialEq, Eq)]
-// pub enum InnerVarType {
-//     Unit,
-//     Int,
-//     Float,
-//     Bool,
-//     Char,
-//     String,
-//     // Maybe this should be modified
-//     Tuple(Vec<InnerVarType>),
-//     Array(Box<InnerVarType>),
-// }
-
-// #[derive(Clone, Debug, PartialEq, Eq)]
-// pub struct VarType {
-//     inner: InnerVarType,
-//     initialized: bool,
-// }
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum VarType {
+pub enum InnerVarType {
     Unit,
     Int,
     Float,
@@ -32,89 +14,78 @@ pub enum VarType {
     Char,
     String,
     // Maybe this should be modified
-    Pre(Box<VarType>),
-    Tuple(Vec<VarType>),
-    Array(Box<VarType>),
+    Tuple(Vec<InnerVarType>),
+    Array(Box<InnerVarType>),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct VarType {
+    pub inner: InnerVarType,
+    pub initialized: bool,
 }
 
 impl VarType {
-    pub fn contains_pre(&self) -> bool {
-        match self {
-            VarType::Unit
-            | VarType::Int
-            | VarType::Float
-            | VarType::Bool
-            | VarType::Char
-            | VarType::String => false,
-            VarType::Pre(_) => true,
-            VarType::Tuple(var_types) => var_types
-                .iter()
-                .fold(false, |acc, t| acc || t.contains_pre()),
-            VarType::Array(var_type) => var_type.contains_pre(),
-        }
+    pub fn uninitialized(&mut self) {
+        self.initialized = false;
     }
-    pub fn merge(self, rhs: Self) -> Option<Self> {
+    pub fn is_initialized(&self) -> bool {
+        self.initialized
+    }
+    pub fn is_not_initialized(&self) -> bool {
+        !self.initialized
+    }
+    pub fn merge(self, mut rhs: Self) -> Option<Self> {
         if self == rhs {
             return Some(rhs);
-        }
-
-        use VarType::*;
-        match (self, rhs) {
-            (Pre(l), Pre(r)) => Some(Pre(Box::new(l.merge(*r)?))),
-            (Pre(l), r) => Some(Pre(Box::new(l.merge(r)?))),
-            (l, Pre(r)) => Some(Pre(Box::new(l.merge(*r)?))),
-            (Tuple(l), Tuple(r)) => {
-                let mut vec_type = vec![];
-                for (lt, rt) in l.into_iter().zip(r.into_iter()) {
-                    vec_type.push(lt.merge(rt)?)
-                }
-                Some(Tuple(vec_type))
+        } else if self.inner == rhs.inner {
+            if self.initialized == rhs.initialized {
+                Some(rhs)
+            } else {
+                rhs.uninitialized();
+                Some(rhs)
             }
-            (Array(l), Array(r)) => Some(Array(Box::new(l.merge(*r)?))),
-            (_, _) => None,
+        } else {
+            None
         }
     }
     pub fn equal_without_pre(&self, rhs: &Self) -> bool {
-        if self == rhs {
-            return true;
-        }
-
-        use VarType::*;
-        match (self, rhs) {
-            (Pre(l), r) => l.equal_without_pre(r),
-            (l, Pre(r)) => l.equal_without_pre(r),
-            (_, _) => false,
+        self.inner == rhs.inner
+    }
+    pub fn equal_array_of(&self, lhs: &Self) -> bool {
+        match &self.inner {
+            InnerVarType::Array(inner_var_type) => **inner_var_type == lhs.inner,
+            _ => false,
         }
     }
     pub fn remove_one_pre(self) -> Self {
-        match self {
-            VarType::Pre(var_type) => *var_type,
-            VarType::Int
-            | VarType::Unit
-            | VarType::Float
-            | VarType::Bool
-            | VarType::Char
-            | VarType::String => self,
-            VarType::Tuple(var_types) => {
-                VarType::Tuple(var_types.into_iter().map(|t| t.remove_one_pre()).collect())
-            }
-            VarType::Array(var_type) => VarType::Array(Box::new(var_type.remove_one_pre())),
+        Self {
+            inner: self.inner,
+            initialized: true,
         }
     }
 }
 
 impl std::fmt::Display for VarType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        if self.initialized {
+            write!(f, "{}", self.inner)
+        } else {
+            write!(f, "pre {}", self.inner)
+        }
+    }
+}
+impl std::fmt::Display for InnerVarType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            VarType::Unit => write!(f, "()"),
-            VarType::Int => write!(f, "int"),
-            VarType::Float => write!(f, "float"),
-            VarType::Bool => write!(f, "bool"),
-            VarType::Char => write!(f, "char"),
-            VarType::String => write!(f, "string"),
-            VarType::Pre(var_type) => write!(f, "pre {}", var_type),
-            VarType::Array(var_type) => write!(f, "[{}]", var_type),
-            VarType::Tuple(v) => {
+            InnerVarType::Unit => write!(f, "()"),
+            InnerVarType::Int => write!(f, "int"),
+            InnerVarType::Float => write!(f, "float"),
+            InnerVarType::Bool => write!(f, "bool"),
+            InnerVarType::Char => write!(f, "char"),
+            InnerVarType::String => write!(f, "string"),
+            // InnerVarType::Pre(var_type) => write!(f, "pre {}", var_type),
+            InnerVarType::Array(var_type) => write!(f, "[{}]", var_type),
+            InnerVarType::Tuple(v) => {
                 write!(f, "(")?;
                 for (i, typ) in v.iter().enumerate() {
                     write!(f, "{typ}")?;
@@ -131,19 +102,55 @@ impl std::fmt::Display for VarType {
 impl VarType {
     pub fn tuple_from_vec(vec: Vec<VarType>) -> Self {
         match &vec[..] {
-            [] => Self::Unit,
+            [] => Self {
+                initialized: true,
+                inner: InnerVarType::Unit,
+            },
             [t] => t.clone(),
-            _ => Self::Tuple(vec),
+            _ => Self {
+                initialized: true,
+                inner: InnerVarType::Tuple(vec.into_iter().map(|x| x.inner).collect()),
+            },
         }
     }
 }
 pub(crate) fn var_type(input: LSpan) -> IResult<LSpan, VarType> {
     ws(alt((
-        value(VarType::Int, tag("int")),
-        value(VarType::Float, alt((tag("float"), tag("real")))),
-        value(VarType::Char, tag("char")),
-        value(VarType::Bool, tag("bool")),
-        value(VarType::String, tag("string")),
+        value(
+            VarType {
+                initialized: true,
+                inner: InnerVarType::Int,
+            },
+            tag("int"),
+        ),
+        value(
+            VarType {
+                initialized: true,
+                inner: InnerVarType::Float,
+            },
+            alt((tag("float"), tag("real"))),
+        ),
+        value(
+            VarType {
+                initialized: true,
+                inner: InnerVarType::Char,
+            },
+            tag("char"),
+        ),
+        value(
+            VarType {
+                initialized: true,
+                inner: InnerVarType::Bool,
+            },
+            tag("bool"),
+        ),
+        value(
+            VarType {
+                initialized: true,
+                inner: InnerVarType::String,
+            },
+            tag("string"),
+        ),
     )))
     .parse(input)
 }

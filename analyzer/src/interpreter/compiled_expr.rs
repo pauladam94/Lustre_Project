@@ -105,7 +105,6 @@ impl CompiledExpr {
         match self {
             CompiledExpr::Input => None,
             CompiledExpr::Output => {
-                // TODO this is reachable AHAH
                 unreachable!()
             }
             CompiledExpr::Set { src } => values[src.to_usize()].clone(),
@@ -145,6 +144,8 @@ impl CompiledExpr {
                         Eq => Some(Bool(lv == rv)),
                         Neq => Some(Bool(lv != rv)),
                         Arrow => Some(Bool(rv)),
+                        Or => Some(Bool(lv || rv)),
+                        And => Some(Bool(lv && rv)),
                         _ => None,
                     },
                     (_, _) => None,

@@ -120,11 +120,10 @@ tel
         ok_check(
             "
 
-node f(x: int) returns(z: int, y: bool);
+node f(x: int) returns(z: int);
 let
     a = x + 5;
     z = a + x + 10;
-    y = true;
 tel
 node g(y: int) returns (x: bool);
 let
@@ -162,6 +161,28 @@ let
     z = fibo([(), (), (), (), ()]) == [false, true, true, true, true];        
 tel
         ",
+        );
+    }
+
+    #[test]
+    fn fibonacci_4_error() {
+        error_check(
+            "
+node fibo() returns (z : int);
+let
+	x0 = pre z;
+	x1 = pre pre z;
+	add = x0 + x1;
+	z = 1 -> (1 -> add);
+tel
+
+#[test]
+node test2() returns (z : bool);
+let
+	lhs = fibo([(), (), (), ()]);
+	rhs = [2, 4, 6];
+	z = lhs == rhs;
+tel",
         );
     }
 }

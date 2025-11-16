@@ -1,7 +1,9 @@
 use crate::parser::expression::Expr;
+use crate::parser::hightlight::DocumentHighlightVisitor;
 use crate::parser::node::{Node, node};
+use crate::parser::semantic_token::SemanticTokenVisitor;
 use crate::parser::span::{LSpan, Span};
-use crate::parser::visitor::{DocumentHighlightVisitor, SemanticTokenVisitor, Visitor};
+use crate::parser::visitor::Visitor;
 use crate::parser::white_space::ws;
 use lsp_types::{DocumentHighlight, Position, Range, SemanticToken, TextEdit};
 use nom::IResult;
@@ -71,7 +73,7 @@ impl Ast {
     pub fn document_hightlight(&self) -> Vec<DocumentHighlight> {
         let mut visitor = DocumentHighlightVisitor::new();
         visitor.walk(self);
-        visitor
+        visitor.hightlights()
     }
     pub fn semantic_tokens_full(&self) -> Vec<SemanticToken> {
         let mut visitor = SemanticTokenVisitor::new();

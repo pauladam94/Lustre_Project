@@ -1,10 +1,7 @@
 use crate::parser::expression::Precedence;
 
-
-
-
 #[derive(Clone, Debug, PartialEq, Copy)]
-pub(crate) enum UnaryOp {
+pub enum UnaryOp {
     Inv,
     Pre,
     Not,

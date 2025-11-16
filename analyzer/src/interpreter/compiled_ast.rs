@@ -1,5 +1,3 @@
-use colored::Colorize;
-
 use crate::{
     interpreter::{compiled_expr::CompiledExpr, expr_index::ExprIndex},
     parser::literal::Value,
@@ -121,7 +119,7 @@ impl CompiledNode {
         self.instant = 0;
     }
     pub fn step(&mut self, inputs: Vec<Value>) -> Vec<Value> {
-        println!("{} >>\n{}\n", "COMPILE".blue(), self);
+        // println!("{} >>\n{}\n", "COMPILE".blue(), self);
         let Self {
             vec,
             info,
@@ -136,18 +134,18 @@ impl CompiledNode {
         for (pos, expr) in vec.iter().enumerate().rev() {
             values[pos] = expr.compute(values, instant);
         }
-        println!(
-            "{} >>\n{}\n",
-            "COMPILE".blue(),
-            Self {
-                vec: vec.clone(),
-                info: info.clone(),
-                inputs: inputs_index.clone(),
-                outputs: outputs_index.clone(),
-                values: values.clone(),
-                instant: instant.clone(),
-            }
-        );
+        // println!(
+        //     "{} >>\n{}\n",
+        //     "COMPILE".blue(),
+        //     Self {
+        //         vec: vec.clone(),
+        //         info: info.clone(),
+        //         inputs: inputs_index.clone(),
+        //         outputs: outputs_index.clone(),
+        //         values: values.clone(),
+        //         instant: instant.clone(),
+        //     }
+        // );
         let mut res = vec![];
         for output in outputs_index.iter() {
             res.push(values[output.to_usize()].clone().unwrap());

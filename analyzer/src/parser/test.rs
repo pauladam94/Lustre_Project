@@ -532,4 +532,25 @@ tel
         ",
         );
     }
+
+    #[test]
+    fn fibonacci_5_ok() {
+        ok_parse(
+            "
+node fibo() returns (z : int);
+let
+	x0 = pre z;
+	x1 = pre pre z;
+	z = 1 -> (1 -> (x0 + x1));
+tel
+
+#[test]
+node test2() returns (z : bool);
+let
+	lhs = fibo([(), (), (), ()]);
+	rhs = [2, 4, 6];
+	z = lhs == rhs;
+tel",
+        );
+    }
 }

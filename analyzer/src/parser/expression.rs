@@ -35,6 +35,7 @@ pub(crate) enum Expr {
     },
     UnaryOp {
         op: UnaryOp,
+        span_op: Span,
         rhs: Box<Expr>,
     },
     Array(Vec<Expr>),
@@ -102,7 +103,11 @@ impl Expr {
                 }
             },
             Expr::Variable(s) => write!(f, "{}", s),
-            Expr::UnaryOp { op, rhs } => {
+            Expr::UnaryOp {
+                op,
+                span_op: _,
+                rhs,
+            } => {
                 write!(f, "{op} {rhs}")
             }
             Expr::Lit(lt) => {
@@ -194,14 +199,15 @@ pub(crate) fn expression(input: LSpan) -> IResult<LSpan, Expr> {
                 }
                 Prefix(op, rhs) => {
                     use UnaryOp::*;
-                    let op = match *op.fragment() {
+                    let unary_op = match *op.fragment() {
                         "pre" => Pre,
                         "-" => Inv,
                         "not" => Not,
                         _ => return Err("Non supported unary operator"),
                     };
                     Ok(Expr::UnaryOp {
-                        op,
+                        op: unary_op,
+                        span_op: Span::new(op),
                         rhs: Box::new(rhs),
                     })
                 }

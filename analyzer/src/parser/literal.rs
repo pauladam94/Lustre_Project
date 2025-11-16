@@ -1,6 +1,7 @@
 use crate::diagnostic::ToRange;
 use crate::parser::span::LSpan;
 use crate::parser::span::Span;
+use crate::parser::var_type::InnerVarType;
 use crate::parser::var_type::VarType;
 use lsp_types::Range;
 use nom::IResult;
@@ -55,26 +56,30 @@ impl Value {
     }
 
     pub fn get_type(&self) -> VarType {
-        match self {
-            Value::Unit => VarType::Unit,
-            Value::Integer(_) => VarType::Int,
-            Value::Float(_) => VarType::Float,
-            Value::Bool(_) => VarType::Bool,
-            Value::Tuple(v) => {
-                if v.is_empty() {
-                    VarType::Unit
-                } else {
-                    VarType::Tuple(v.iter().map(|v| v.get_type()).collect())
+        VarType {
+            initialized: true,
+            // TODO do a function on InnerVarType directly !
+            inner: match self {
+                Value::Unit => InnerVarType::Unit,
+                Value::Integer(_) => InnerVarType::Int,
+                Value::Float(_) => InnerVarType::Float,
+                Value::Bool(_) => InnerVarType::Bool,
+                Value::Tuple(v) => {
+                    if v.is_empty() {
+                        InnerVarType::Unit
+                    } else {
+                        InnerVarType::Tuple(v.iter().map(|v| v.get_type().inner).collect())
+                    }
                 }
-            }
-            Value::Array(v) => {
-                // Check more things maybe
-                if v.is_empty() {
-                    VarType::Array(Box::new(VarType::Unit))
-                } else {
-                    VarType::Array(Box::new(v[0].get_type()))
+                Value::Array(v) => {
+                    // Check more things maybe
+                    if v.is_empty() {
+                        InnerVarType::Array(Box::new(InnerVarType::Unit))
+                    } else {
+                        InnerVarType::Array(Box::new(v[0].get_type().inner))
+                    }
                 }
-            }
+            },
         }
     }
 }
@@ -94,7 +99,7 @@ impl std::fmt::Display for Value {
             Value::Bool(b) => write!(f, "{b}"),
             Value::Tuple(vec) => {
                 if vec.is_empty() {
-                    write!(f, "{}", VarType::Unit)
+                    write!(f, "{}", InnerVarType::Unit)
                 } else {
                     write!(f, "(")?;
                     for (i, val) in vec.iter().enumerate() {

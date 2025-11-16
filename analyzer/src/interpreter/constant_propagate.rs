@@ -1,8 +1,3 @@
-use std::collections::HashMap;
-
-use colored::Colorize;
-use lsp_types::{InlayHint, InlayHintLabel, Position};
-
 use crate::{
     checker::types::{FunctionCallType, FunctionType},
     parser::{
@@ -13,6 +8,9 @@ use crate::{
         span::{PositionEnd, Span},
     },
 };
+use colored::Colorize;
+use lsp_types::{InlayHint, InlayHintLabel, Position};
+use std::collections::HashMap;
 
 #[derive(Default)]
 pub struct PropagaterConst {
@@ -124,7 +122,7 @@ impl PropagaterConst {
                     (_, _) => expr.clone(),
                 }
             }
-            Expr::UnaryOp { op, rhs } => expr.clone(),
+            Expr::UnaryOp { .. } => expr.clone(),
             Expr::Array(exprs) => expr.clone(),
             Expr::FCall { name, args } => {
                 let mut args_are_const = true;
@@ -170,7 +168,7 @@ impl PropagaterConst {
 
                 // Compile & Interpret the function because arguments are constant
                 let mut compile_ast = ast.compile(name.clone());
-                println!("{} >>\n{}\n", "COMPILE".blue(), compile_ast);
+                // println!("{} >>\n{}\n", "COMPILE".blue(), compile_ast);
 
                 match call_type {
                     FunctionCallType::Simple => {
