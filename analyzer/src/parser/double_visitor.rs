@@ -118,7 +118,7 @@ impl DoubleTogetherVisitor for ShallowEq {
                 self.set(false);
                 return;
             }
-            (Some(t1), Some(t2)) => self.visit_tag(t1, t2),
+            (Some((_, t1)), Some((_, t2))) => self.visit_tag(t1, t2),
         }
 
         self.visit_span(&x1.name, &x2.name);

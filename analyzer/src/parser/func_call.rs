@@ -1,37 +1,52 @@
 use crate::parser::{
     expression::{Expr, expression},
-    literal::identifier,
+    literal::{Value, identifier},
     span::{LSpan, Span},
     white_space::ws,
 };
-use nom::{IResult, Parser, bytes::tag, combinator::opt, multi::many0, sequence::terminated};
+use nom::{
+    IResult, Parser,
+    branch::alt,
+    bytes::tag,
+    combinator::{opt, recognize, value},
+    multi::many0,
+    sequence::{delimited, terminated},
+};
 
 pub(crate) fn func_call(input: LSpan) -> IResult<LSpan, (Span, Vec<Expr>)> {
     (
         ws(identifier),
-        ws(tag("(")),
-        (
-            many0(terminated(ws(expression), ws(tag(",")))),
-            opt(ws(expression)),
-        )
-            .map(|(mut v, e)| {
-                // TODO
-                // Add unit as empty argument
-                // if v.is_empty() {
-                //     vec![]
-                // } else {
-                // }
-                match e {
-                    Some(e) => {
-                        v.push(e);
-                        v
-                    }
-                    None => v,
-                }
-            }),
-        ws(tag(")")),
+        alt((
+            value(
+                vec![Expr::Lit(Value::Unit)],
+                recognize((ws(tag("(")), ws(tag(")")))),
+            ),
+            delimited(
+                ws(tag("(")),
+                (
+                    many0(terminated(ws(expression), ws(tag(",")))),
+                    opt(ws(expression)),
+                )
+                    .map(|(mut v, e)| {
+                        // TODO
+                        // Add unit as empty argument
+                        // if v.is_empty() {
+                        //     vec![]
+                        // } else {
+                        // }
+                        match e {
+                            Some(e) => {
+                                v.push(e);
+                                v
+                            }
+                            None => v,
+                        }
+                    }),
+                ws(tag(")")),
+            ),
+        )),
     )
-        .map(|(s, _, args, _)| (s, args))
+        .map(|(s, args)| (s, args))
         .parse(input)
 }
 

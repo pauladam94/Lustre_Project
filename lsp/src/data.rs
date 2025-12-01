@@ -20,7 +20,6 @@ pub struct Data {
     parse: std::result::Result<Ast, Vec<Diagnostic>>,
     check: Vec<Diagnostic>,
     type_hint: Vec<InlayHint>,
-
     test_hint: Vec<InlayHint>,
     test_diag: Vec<Diagnostic>,
 }

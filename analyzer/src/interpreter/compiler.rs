@@ -1,10 +1,9 @@
-use std::collections::HashMap;
-
 use crate::{
     interpreter::{compiled_ast::CompiledNode, compiled_expr::CompiledExpr, expr_index::ExprIndex},
     parser::{ast::Ast, binop::BinOp, expression::Expr, node::Node, span::Span, unary_op::UnaryOp},
 };
 use colored::Colorize;
+use std::collections::HashMap;
 
 struct Compiler {
     ast: CompiledNode,
@@ -83,9 +82,11 @@ impl Compiler {
                 span_op: _,
                 rhs,
             } => {
+                // TODO put this again
                 let res = self.ast.push_back_expr(CompiledExpr::Output, info);
-                let temp_var = self.compile_pre(ast, node, inputs, outputs, vars, rhs);
                 let ilhs = self.compile_expr(ast, node, inputs, outputs, vars, lhs);
+                // let res = self.ast.ush_back_expr(CompiledExpr::Output, info);
+                let temp_var = self.compile_pre(ast, node, inputs, outputs, vars, rhs);
                 self.ast.replace_expr(
                     CompiledExpr::BinOp {
                         lhs: ilhs,
@@ -94,6 +95,14 @@ impl Compiler {
                     },
                     res,
                 );
+                // let res = self.ast.push_back_expr(
+                //     CompiledExpr::BinOp {
+                //         lhs: ilhs,
+                //         op: BinOp::Arrow,
+                //         rhs: temp_var,
+                //     },
+                //     info,
+                // );
                 return res;
             }
             Expr::BinOp {
@@ -178,6 +187,7 @@ impl Compiler {
             Expr::Lit(value) => self
                 .ast
                 .push_back_expr(CompiledExpr::Lit(value.clone()), info),
+            Expr::If { cond, yes, no } => todo!(),
         }
     }
 

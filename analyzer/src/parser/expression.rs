@@ -26,7 +26,7 @@ pub(crate) trait Precedence {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) enum Expr {
+pub enum Expr {
     BinOp {
         lhs: Box<Expr>,
         op: BinOp,
@@ -38,6 +38,11 @@ pub(crate) enum Expr {
         span_op: Span,
         rhs: Box<Expr>,
     },
+    If {
+        cond: Box<Expr>,
+        yes: Box<Expr>,
+        no: Box<Expr>,
+    },
     Array(Vec<Expr>),
     FCall {
         name: Ident,
@@ -48,13 +53,39 @@ pub(crate) enum Expr {
 }
 
 impl Expr {
-    pub fn is_value(&self) -> bool {
-        true
-    }
     pub fn get_value(&self) -> Option<Value> {
         match self {
-            Expr::BinOp { .. } | Expr::UnaryOp { .. } | Expr::FCall { .. } | Expr::Variable(_) => {
-                None
+            Expr::If { .. } // TODO maybe do better if the condition is true
+            | Expr::BinOp { .. }
+            | Expr::FCall { .. }
+            | Expr::Variable(_) => None,
+            Expr::UnaryOp { op, rhs, .. } => {
+                let rv = rhs.get_value()?;
+                match op {
+                    UnaryOp::Inv => match rv {
+                        Value::Integer(i) => Some(Value::Integer(-i)),
+                        Value::Float(f) => Some(Value::Float(-f)),
+                        _ => todo!()
+                    },
+                    UnaryOp::Pre => None,
+                    UnaryOp::Not => match rv {
+                        Value::Unit => todo!(),
+                        Value::Integer(_) => todo!(),
+                        Value::Float(_) => todo!(),
+                        Value::Bool(b) => Some(Value::Bool(!b)),
+                        Value::Tuple(_) => None, // TODO the not operation
+                        Value::Array(values) => Some(Value::Array(
+                            values
+                                .into_iter()
+                                .map(|v| if let Value::Bool(b) = v {
+                                    Value::Bool(!b)
+                                } else {
+                                        unreachable!()
+                                })
+                                .collect()
+                        )),
+                    },
+                }
             }
             Expr::Array(exprs) => {
                 let mut const_exprs = vec![];
@@ -83,7 +114,9 @@ impl Expr {
                 rhs,
             } => match parent_op {
                 Some(parent_op) => {
-                    if parent_op.precedence() < op.precedence() {
+                    let should_put_parentheses = parent_op.precedence() < op.precedence();
+                    // let should_put_parentheses = true;
+                    if should_put_parentheses {
                         write!(f, "(")?;
                     }
 
@@ -91,7 +124,7 @@ impl Expr {
                     write!(f, " {} ", op)?;
                     rhs.fmt_parent(f, Some(*op))?;
 
-                    if parent_op.precedence() < op.precedence() {
+                    if should_put_parentheses {
                         write!(f, ")")?;
                     }
                     Ok(())
@@ -115,10 +148,12 @@ impl Expr {
             }
             Expr::FCall { name, args } => {
                 write!(f, "{}(", name)?;
-                for (i, arg) in args.iter().enumerate() {
-                    write!(f, "{}", arg)?;
-                    if i != args.len() - 1 {
-                        write!(f, ", ")?;
+                if args.len() != 1 || args[0] != Expr::Lit(Value::Unit) {
+                    for (i, arg) in args.iter().enumerate() {
+                        write!(f, "{}", arg)?;
+                        if i != args.len() - 1 {
+                            write!(f, ", ")?;
+                        }
                     }
                 }
                 write!(f, ")")
@@ -132,6 +167,15 @@ impl Expr {
                     }
                 }
                 write!(f, "]")
+            }
+            Expr::If { cond, yes, no } => {
+                write!(f, "if")?;
+                cond.fmt_parent(f, parent_op)?;
+                write!(f, "then (\n")?;
+                yes.fmt_parent(f, parent_op)?;
+                write!(f, ") else (\n")?;
+                no.fmt_parent(f, parent_op)?;
+                write!(f, "\n)")
             }
         }
     }

@@ -58,7 +58,7 @@ impl FunctionType {
         }
         res
     }
-    pub fn get_function_type(node: &Node) -> (Self, Vec<Diagnostic>) {
+    pub(crate) fn get_function_type(node: &Node) -> (Self, Vec<Diagnostic>) {
         let mut diags = vec![];
         let mut func = FunctionType {
             inputs: IndexMap::new(),
@@ -100,17 +100,6 @@ impl FunctionType {
             } else {
                 func.vars.insert(name.clone(), t.clone());
             }
-        }
-        // Function with no arguments are function
-        // of type 'unit -> [return types]'
-        if func.inputs.is_empty() {
-            func.inputs.insert(
-                node.name.clone(),
-                VarType {
-                    initialized: true,
-                    inner: InnerVarType::Unit,
-                },
-            );
         }
         (func, diags)
     }
@@ -197,11 +186,11 @@ impl CheckerInfo {
                     })
                 } else {
                     self.push_diagnostic(Diagnostic {
-                        message: format!("Got type '{}' on the left and '{}' on the right\n but expected to have the same type.", lt, rt),
-                        severity: Some(DiagnosticSeverity::ERROR),
-                        range: span_op.to_range(),
-                        ..Default::default()
-                    });
+                                message: format!("Got type '{}' on the left and '{}' on the right\n but expected to have the same type.", lt, rt),
+                                severity: Some(DiagnosticSeverity::ERROR),
+                                range: span_op.to_range(),
+                                ..Default::default()
+                            });
                     None
                 }
             }
@@ -213,7 +202,6 @@ impl CheckerInfo {
             } => {
                 let lt = self.get_type_equation(node, lhs)?;
                 let rt = self.get_type_equation(node, rhs)?;
-                // TODO 'int -> pre int' should return type 'int'
                 if lt.is_not_initialized() {
                     self.push_diagnostic(Diagnostic {
                         message: format!(
@@ -230,11 +218,11 @@ impl CheckerInfo {
                     Some(rt.remove_one_pre())
                 } else {
                     self.push_diagnostic(Diagnostic {
-                        message: format!("Got type '{}' on the left and '{}' on the right\n but expected to have the same type.", lt, rt),
-                        severity: Some(DiagnosticSeverity::ERROR),
-                        range: span_op.to_range(),
-                        ..Default::default()
-                    });
+                                message: format!("Got type '{}' on the left and '{}' on the right\n but expected to have the same type.", lt, rt),
+                                severity: Some(DiagnosticSeverity::ERROR),
+                                range: span_op.to_range(),
+                                ..Default::default()
+                            });
                     None
                 }
             }
@@ -254,11 +242,11 @@ impl CheckerInfo {
                     Some(t)
                 } else {
                     self.push_diagnostic(Diagnostic {
-                        message: format!("Using pre operator on a not initialized value. This cannot be recovered with any other operator."),
-                        severity: Some(DiagnosticSeverity::ERROR),
-                        range: span_op.to_range(),
-                        ..Default::default()
-                    });
+                                message: format!("Using pre operator on a not initialized value. This cannot be recovered with any other operator."),
+                                severity: Some(DiagnosticSeverity::ERROR),
+                                range: span_op.to_range(),
+                                ..Default::default()
+                            });
                     None
                 }
             }
@@ -315,6 +303,7 @@ impl CheckerInfo {
                 };
                 self.get_type_function(node, name, args)
             }
+            Expr::If { cond, yes, no } => todo!(),
         }
     }
 

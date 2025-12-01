@@ -6,25 +6,31 @@ use crate::parser::literal::Value;
 use crate::parser::literal::identifier;
 use crate::parser::span::Ident;
 use crate::parser::span::LSpan;
+use crate::parser::span::PositionEnd;
 use crate::parser::span::Span;
 use crate::parser::span_eq::SpanEq;
+use crate::parser::var_type::InnerVarType;
 use crate::parser::var_type::VarType;
 use crate::parser::white_space::ws;
+use lsp_types::Position;
 use nom::IResult;
 use nom::Parser;
+use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::combinator::opt;
+use nom::combinator::recognize;
 use nom::sequence::delimited;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Node {
+    // pub(crate) span_tag: Span,
     pub(crate) span_node: Span,
     pub(crate) span_returns: Span,
     pub(crate) span_let: Span,
     pub(crate) span_tel: Span,
     pub(crate) span_semicolon: Span,
 
-    pub(crate) tag: Option<Tag>,
+    pub(crate) tag: Option<(Span, Tag)>,
     pub(crate) name: Span,
     pub(crate) inputs: Vec<(Ident, VarType)>,
     pub(crate) vars: Vec<(Ident, VarType)>,
@@ -35,14 +41,16 @@ pub(crate) struct Node {
 
 impl std::fmt::Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if let Some(t) = &self.tag {
+        if let Some((_, t)) = &self.tag {
             write!(f, "#[{t}]\n")?;
         }
         write!(f, "node {}(", self.name)?;
-        for (i, (s, t)) in self.inputs.iter().enumerate() {
-            write!(f, "{s} : {t}")?;
-            if i != self.inputs.len() - 1 {
-                write!(f, ", ")?;
+        if self.inputs.len() != 1 || self.inputs[0].1.inner != InnerVarType::Unit {
+            for (i, (s, t)) in self.inputs.iter().enumerate() {
+                write!(f, "{s} : {t}")?;
+                if i != self.inputs.len() - 1 {
+                    write!(f, ", ")?;
+                }
             }
         }
         write!(f, ") returns (")?;
@@ -64,6 +72,27 @@ impl std::fmt::Display for Node {
 }
 
 impl Node {
+    pub fn hint_reduced_test(&self) -> (Position, String) {
+        (
+            self.tag.as_ref().unwrap().0.position_end(),
+            if self.is_reduced_test() {
+                format!(" ✅ OK")
+            } else {
+                format!(" ❌ ERROR")
+            },
+        )
+    }
+    pub fn is_reduced_test(&self) -> bool {
+        self.is_test() && self.is_only_true_equations()
+    }
+    pub fn is_test(&self) -> bool {
+        return self.tag.is_some() && self.outputs.len() == 1;
+    }
+    pub fn is_only_true_equations(&self) -> bool {
+        self.let_bindings.len() == 1 // it has one equation
+        && self.let_bindings[0].0.fragment() == self.outputs[0].0.fragment() // the only equation is the one of the output 
+        && self.let_bindings[0].1 == Expr::Lit(Value::Bool(true)) // The only equation is "= true;"
+    }
     pub fn push_expr(&mut self, name: Span, expr: Expr) {
         self.let_bindings.push((name, expr));
     }
@@ -82,6 +111,7 @@ impl Node {
             let_bindings: _,
             span_semicolon_equations,
         } = self;
+
         Self {
             span_node: span_node.clone(),
             span_returns: span_returns.clone(),
@@ -130,10 +160,21 @@ impl SpanEq for Node {
 pub(crate) fn node(input: LSpan) -> IResult<LSpan, Node> {
     (
         (
-            opt(ws(tag("#[test]"))).map(|t| t.map(|_| Tag::Test)),
+            opt(ws(tag("#[test]"))).map(|t| t.map(|s| (Span::new(s), Tag::Test))),
             ws(tag("node").map(|s| Span::new(s))),
             ws(identifier),
-            delimited(ws(tag("(")), ws(args), ws(tag(")"))),
+            alt((
+                recognize((ws(tag("(")), ws(tag(")")))).map(|paren| {
+                    vec![(
+                        Span::new(paren),
+                        VarType {
+                            initialized: true,
+                            inner: InnerVarType::Unit,
+                        },
+                    )]
+                }),
+                delimited(ws(tag("(")), ws(args), ws(tag(")"))),
+            )),
             ws(tag("returns").map(|s| Span::new(s))),
             delimited(ws(tag("(")), ws(args), ws(tag(")"))),
             ws(tag(";")).map(|s| Span::new(s)),

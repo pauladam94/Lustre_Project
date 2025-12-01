@@ -83,6 +83,16 @@ impl ToRange for Span {
 }
 
 impl Span {
+    pub fn unit() -> Self {
+        Self {
+            column: 0,
+            line: 0,
+            fragment: format!("()"),
+        }
+    }
+    pub fn change_text(&mut self, fragment: String) {
+        self.fragment = fragment;
+    }
     pub fn eq_exact(&self, lhs: &Self) -> bool {
         self.column == lhs.column && self.line == lhs.line && self.fragment() == lhs.fragment()
     }

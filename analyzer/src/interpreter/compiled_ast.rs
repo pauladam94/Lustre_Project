@@ -1,3 +1,5 @@
+use colored::Colorize;
+
 use crate::{
     interpreter::{compiled_expr::CompiledExpr, expr_index::ExprIndex},
     parser::literal::Value,
@@ -102,11 +104,34 @@ impl CompiledNode {
     pub fn back_index(&self) -> ExprIndex {
         ExprIndex::new(self.vec.len())
     }
-    pub fn push_back_expr(&mut self, expr: CompiledExpr, info: String) -> ExprIndex {
+    pub fn push_back_expr_previous(&mut self, expr: CompiledExpr, info: String) -> ExprIndex {
         self.vec.push(expr);
         self.info.push_back(info);
         self.values.push(None);
         ExprIndex::new(self.vec.len() - 1)
+    }
+    pub fn push_back_expr(&mut self, expr: CompiledExpr, info: String) -> ExprIndex {
+        // NO Memoisation for now
+        if false {
+            // Memoisation of compilation, if we push something already compiled this
+            // we return the one already compiled
+            if expr != CompiledExpr::Output
+                && let Some(i) = self.vec.iter().position(|x| x == &expr)
+            {
+                // println!("PUSH (already here at {i}) : {expr}");
+
+                ExprIndex::new(i)
+            } else {
+                // eprintln!("PUSH (not already here) : {expr}");
+
+                self.vec.push(expr);
+                self.info.push_back(info);
+                self.values.push(None);
+                ExprIndex::new(self.vec.len() - 1)
+            }
+        } else {
+            self.push_back_expr_previous(expr, info)
+        }
     }
 
     pub fn add_info(&mut self, index: ExprIndex, info: String) {
@@ -119,7 +144,7 @@ impl CompiledNode {
         self.instant = 0;
     }
     pub fn step(&mut self, inputs: Vec<Value>) -> Vec<Value> {
-        // println!("{} >>\n{}\n", "COMPILE".blue(), self);
+        // println!("{} >>\n{}\n", "COMPILE".blue(), &self);
         let Self {
             vec,
             info,
@@ -132,20 +157,23 @@ impl CompiledNode {
             values[index.to_usize()] = Some(val);
         }
         for (pos, expr) in vec.iter().enumerate().rev() {
+            if expr == &CompiledExpr::Input {
+                continue;
+            }
             values[pos] = expr.compute(values, instant);
         }
-        // println!(
-        //     "{} >>\n{}\n",
-        //     "COMPILE".blue(),
-        //     Self {
-        //         vec: vec.clone(),
-        //         info: info.clone(),
-        //         inputs: inputs_index.clone(),
-        //         outputs: outputs_index.clone(),
-        //         values: values.clone(),
-        //         instant: instant.clone(),
-        //     }
-        // );
+        eprintln!(
+            "{} >>\n{}\n",
+            "COMPILE".blue(),
+            Self {
+                vec: vec.clone(),
+                info: info.clone(),
+                inputs: inputs_index.clone(),
+                outputs: outputs_index.clone(),
+                values: values.clone(),
+                instant: instant.clone(),
+            }
+        );
         let mut res = vec![];
         for output in outputs_index.iter() {
             res.push(values[output.to_usize()].clone().unwrap());

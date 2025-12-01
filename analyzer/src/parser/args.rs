@@ -1,3 +1,4 @@
+use crate::parser::span::Span;
 use crate::parser::var_type::var_type;
 use crate::parser::{
     literal::identifier,
@@ -7,7 +8,7 @@ use crate::parser::{
 };
 use nom::Parser;
 use nom::combinator::opt;
-use nom::multi::{many0, many1};
+use nom::multi::many0;
 use nom::sequence::terminated;
 use nom::{IResult, bytes::tag, sequence::separated_pair};
 

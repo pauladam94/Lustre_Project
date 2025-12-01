@@ -11,7 +11,7 @@ pub fn ok_check(input: &str) {
 
     let (diags, _) = build_ast.check();
     if !diags.is_empty() {
-        println!(
+        eprintln!(
             "{} : diagnostics should be empty\n>>{} = {:#?}",
             ">> ERROR".red(),
             "DIAGS".blue(),
@@ -27,7 +27,10 @@ pub fn error_check(input: &str) {
 
     let (diags, _) = build_ast.check();
     if diags.is_empty() {
-        println!("{}: error expected but no diagnostics", ">> ERROR".red());
+        println!(
+            "{}: error expected but no diagnos + 1;tics",
+            ">> ERROR".red()
+        );
         assert!(false);
     }
 }

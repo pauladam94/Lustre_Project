@@ -42,11 +42,16 @@ pub(crate) trait Visitor {
             Expr::Variable(s) => {
                 self.visit_span(s);
             }
+            Expr::If { cond, yes, no } => {
+                self.visit_expr(cond);
+                self.visit_expr(yes);
+                self.visit_expr(no);
+            }
         }
     }
 
     fn visit_node(&mut self, x: &Node) {
-        if let Some(t) = &x.tag {
+        if let Some((_, t)) = &x.tag {
             self.visit_tag(t)
         }
         self.visit_span(&x.name);

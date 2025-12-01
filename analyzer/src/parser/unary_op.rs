@@ -1,6 +1,6 @@
 use crate::parser::expression::Precedence;
 
-#[derive(Clone, Debug, PartialEq, Copy)]
+#[derive(Clone, Debug, PartialEq, Eq, Copy)]
 pub enum UnaryOp {
     Inv,
     Pre,

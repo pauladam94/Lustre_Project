@@ -3,7 +3,7 @@ use crate::{
     parser::{binop::BinOp, literal::Value, unary_op::UnaryOp},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum CompiledExpr {
     Input,
     Output,

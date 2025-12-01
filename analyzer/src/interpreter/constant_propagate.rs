@@ -41,6 +41,14 @@ impl PropagaterConst {
             data: None,
         })
     }
+
+    fn reduced_test_hint(&mut self) {
+        if self.ast.last_nodes_is_test() {
+            if let Some((position, label)) = self.ast.hint_last_node_reduced_test() {
+                self.push_hint(position, label)
+            }
+        }
+    }
 }
 impl Ast {
     pub fn propagate_const(&self) -> (Self, Vec<InlayHint>) {
@@ -122,8 +130,17 @@ impl PropagaterConst {
                     (_, _) => expr.clone(),
                 }
             }
-            Expr::UnaryOp { .. } => expr.clone(),
-            Expr::Array(exprs) => expr.clone(),
+            Expr::UnaryOp { op, span_op, rhs } => Expr::UnaryOp {
+                op: op.clone(),
+                span_op: span_op.clone(),
+                rhs: Box::new(self.const_expr(ast, node, rhs)),
+            },
+            Expr::Array(exprs) => Expr::Array(
+                exprs
+                    .iter()
+                    .map(|e| self.const_expr(ast, node, e))
+                    .collect(),
+            ),
             Expr::FCall { name, args } => {
                 let mut args_are_const = true;
                 let mut const_args = vec![];
@@ -139,8 +156,12 @@ impl PropagaterConst {
                     }
                     const_args.push(const_expr);
                 }
-
-                if !args_are_const {
+                eprint!("Consts args of func call of '{name}' are :");
+                const_args.iter().for_each(|x| eprint!("{x}, "));
+                eprintln!("");
+                if !args_are_const
+                    || (const_args.len() == 1 && const_args[0] == Expr::Lit(Value::Unit))
+                {
                     return Expr::FCall {
                         name: name.clone(),
                         args: const_args,
@@ -164,18 +185,22 @@ impl PropagaterConst {
                     .unwrap(); // Ok because of type checking
 
                 // unwrap ok because of type checking
+                // This crash (sometimes) ! (because argument of some functions are empty)
+                // dbg!();
                 let call_type = func_type.function_call_type(&inputs).unwrap();
 
                 // Compile & Interpret the function because arguments are constant
                 let mut compile_ast = ast.compile(name.clone());
-                // println!("{} >>\n{}\n", "COMPILE".blue(), compile_ast);
+
+                #[cfg(debug_assertions)]
+                eprintln!("{} >>\n{}\n", "COMPILE".blue(), &compile_ast);
 
                 match call_type {
                     FunctionCallType::Simple => {
                         Expr::Lit(Value::tuple_from_vec(compile_ast.step(inputs)))
                     }
                     FunctionCallType::Array => {
-                        // OK unwrap because of typechecking
+                        // OK unwrap because every arguments is an array because of typechecking
                         let array_inputs = Value::unwrap_array(inputs).unwrap();
                         // We know this is ok because no function has 0 arguments (always at least unit)
                         let number_steps = array_inputs[0].len();
@@ -186,9 +211,12 @@ impl PropagaterConst {
                         for instant in 0..number_steps {
                             let mut input = vec![];
                             for pos in 0..number_inputs {
-                                // This crash !
                                 input.push(array_inputs[pos][instant].clone())
                             }
+
+                            eprint!("At instant {instant}, input is : [");
+                            input.iter().for_each(|x| eprint!("{x}, "));
+                            eprintln!("]");
 
                             for (i, res) in compile_ast.step(input).into_iter().enumerate() {
                                 if instant == 0 {
@@ -254,7 +282,7 @@ impl PropagaterConst {
         let shell_node = Node::shell_from_node(node);
         self.ast.nodes.push(shell_node);
         for (out, t) in node.outputs.iter() {
-            for (index, (name, expr)) in node.let_bindings.iter().enumerate() {
+            for (name, expr) in node.let_bindings.iter() {
                 if out == name {
                     self.seen_equations.insert(name.clone(), None);
                     let e = self.const_expr(ast, node, expr);
@@ -263,6 +291,8 @@ impl PropagaterConst {
                 }
             }
         }
+        eprintln!("Compiled Node: \n{}\n", self.ast.nodes.last().unwrap());
+        self.reduced_test_hint();
     }
 
     pub fn const_ast(&mut self, ast: &Ast) {

@@ -9,11 +9,23 @@ import {
 
 let client: LanguageClient;
 
+function getExePath(platform: string): string {
+    if (platform === "win32") {
+        return "lustrels.exe";
+    } else if (platform === "darwin") {
+        return "lustrels.darwin";
+    } else {
+        return "lustrels.linux";
+    }
+}
+  
 export function activate(context: vscode.ExtensionContext) {
   // Path to the LSP binary
-  const serverExe = process.platform === "win32"
-    ? "lustrels.exe"
-    : "lustrels";
+  // const serverExe = process.platform === "win32"
+  //   ? "lustrels.exe"
+  //   : "lustrels";
+  
+  const serverExe = getExePath(process.platform);
 
   // Full path to where we keep the LSP binary inside the extension
   const serverPath = context.asAbsolutePath(
@@ -43,3 +55,4 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate(): Thenable<void> | undefined {
   return client ? client.stop() : undefined;
 }
+

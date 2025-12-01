@@ -1,11 +1,12 @@
 use crate::parser::expression::Expr;
 use crate::parser::hightlight::DocumentHighlightVisitor;
+use crate::parser::literal::Value;
 use crate::parser::node::{Node, node};
 use crate::parser::semantic_token::SemanticTokenVisitor;
 use crate::parser::span::{LSpan, Span};
 use crate::parser::visitor::Visitor;
 use crate::parser::white_space::ws;
-use lsp_types::{DocumentHighlight, Position, Range, SemanticToken, TextEdit};
+use lsp_types::{DocumentHighlight, InlayHint, Position, Range, SemanticToken, TextEdit};
 use nom::IResult;
 use nom::Parser;
 use nom::combinator::all_consuming;
@@ -39,6 +40,24 @@ impl Default for Ast {
 impl Ast {
     pub fn new() -> Self {
         Self { nodes: vec![] }
+    }
+    pub fn hint_last_node_reduced_test(&self) -> Option<(Position, String)> {
+        match self.nodes.last() {
+            Some(node) => Some(node.hint_reduced_test()),
+            None => None,
+        }
+    }
+    pub fn last_nodes_is_test(&self) -> bool {
+        match self.nodes.last() {
+            Some(node) => node.is_test(),
+            None => false,
+        }
+    }
+    pub fn last_nodes_is_reduced_test(&self) -> bool {
+        match self.nodes.last() {
+            Some(node) => node.is_reduced_test(),
+            None => false,
+        }
     }
     pub fn push_expr(&mut self, name: Span, expr: Expr) {
         let len = self.nodes.len();
