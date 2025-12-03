@@ -36,7 +36,7 @@ mod test {
     use crate::interpreter::test::{error_interpretation, ok_interpretation};
 
     #[test]
-    fn double_ok() {
+    fn incr_ok() {
         ok_interpretation(
             "
 node incr(i : int) returns (o : int);
@@ -54,8 +54,26 @@ tel
         );
     }
     #[test]
-    fn double_error() {
+    fn double_ok() {
         ok_interpretation(
+            "
+node double(x : int) returns (z : int);
+let
+	z = x + x;
+tel
+
+#[test]
+node test() returns (b : bool);
+let
+	lhs = double([1, 2, 3, 12]);
+	rhs = [2, 4, 6, 24];
+	b = lhs == rhs;
+tel",
+        );
+    }
+    #[test]
+    fn double_error() {
+        error_interpretation(
             "
 node double(x : int) returns (z : int);
 let

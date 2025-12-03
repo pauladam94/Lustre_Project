@@ -192,8 +192,6 @@ impl PropagaterConst {
                 // Compile & Interpret the function because arguments are constant
                 let mut compile_ast = ast.compile(name.clone());
 
-                #[cfg(debug_assertions)]
-                eprintln!("{} >>\n{}\n", "COMPILE".blue(), &compile_ast);
 
                 match call_type {
                     FunctionCallType::Simple => {

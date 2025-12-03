@@ -58,10 +58,10 @@ impl std::fmt::Display for CompiledExpr {
                 write!(f, "]")
             }
             CompiledExpr::Variable(expr_index) => {
-                write!(f, "VAR {expr_index}")
+                write!(f, "{expr_index}")
             }
             CompiledExpr::Lit(value) => {
-                write!(f, "{value}")
+                write!(f, "val {value}")
             }
             CompiledExpr::Input => write!(f, "IN"),
             CompiledExpr::Output => write!(f, "OUT"),
@@ -83,42 +83,42 @@ impl CompiledExpr {
             _ => Self::Tuple(vec),
         }
     }
-    pub fn offset_index(&mut self, offset: usize) {
-        match self {
-            CompiledExpr::Input => {}
-            CompiledExpr::Output => {}
-            CompiledExpr::Set { src } => src.offset_index(offset),
-            CompiledExpr::Get { src } => {}
-            CompiledExpr::BinOp { lhs, op, rhs } => {
-                lhs.offset_index(offset);
-                rhs.offset_index(offset)
-            }
-            CompiledExpr::UnaryOp { op, rhs } => rhs.offset_index(offset),
-            CompiledExpr::Array(items) => items.iter_mut().for_each(|e| e.offset_index(offset)),
-            CompiledExpr::Tuple(items) => items.iter_mut().for_each(|e| e.offset_index(offset)),
-            CompiledExpr::Variable(expr_index) => expr_index.offset_index(offset),
-            CompiledExpr::Lit(value) => {}
-        }
-    }
+    // pub fn offset_index(&mut self, offset: usize) {
+    //     match self {
+    //         CompiledExpr::Input => {}
+    //         CompiledExpr::Output => {}
+    //         CompiledExpr::Set { src } => src.offset_index(offset),
+    //         CompiledExpr::Get { src } => {}
+    //         CompiledExpr::BinOp { lhs, op, rhs } => {
+    //             lhs.offset_index(offset);
+    //             rhs.offset_index(offset)
+    //         }
+    //         CompiledExpr::UnaryOp { op, rhs } => rhs.offset_index(offset),
+    //         CompiledExpr::Array(items) => items.iter_mut().for_each(|e| e.offset_index(offset)),
+    //         CompiledExpr::Tuple(items) => items.iter_mut().for_each(|e| e.offset_index(offset)),
+    //         CompiledExpr::Variable(expr_index) => expr_index.offset_index(offset),
+    //         CompiledExpr::Lit(value) => {}
+    //     }
+    // }
 
-    pub fn compute(&self, values: &Vec<Option<Value>>, instant: &u64) -> Option<Value> {
+    pub fn compute_one_step(&self, values: &Vec<Option<Value>>, instant: &u64) -> Option<Value> {
         match self {
             CompiledExpr::Input => None,
             CompiledExpr::Output => {
                 unreachable!()
             }
-            CompiledExpr::Set { src } => values[src.to_usize()].clone(),
-            CompiledExpr::Get { src } => values[src.to_usize()].clone(),
+            CompiledExpr::Set { src } => values[*src].clone(),
+            CompiledExpr::Get { src } => values[*src].clone(),
             CompiledExpr::BinOp { lhs, op, rhs } => {
                 use crate::parser::binop::BinOp::*;
                 use Value::*;
-                let lhs = values[lhs.to_usize()].clone()?;
+                let lhs = values[*lhs].clone()?;
                 if op == &BinOp::Arrow {
                     if instant == &0 {
                         return Some(lhs);
                     }
                 }
-                let rhs = values[rhs.to_usize()].clone()?;
+                let rhs = values[*rhs].clone()?;
                 match (lhs, rhs) {
                     (Integer(lv), Integer(rv)) => match op {
                         Add => Some(Integer(lv + rv)),
@@ -156,7 +156,7 @@ impl CompiledExpr {
             }
             CompiledExpr::Array(items) => todo!(),
             CompiledExpr::Tuple(items) => todo!(),
-            CompiledExpr::Variable(expr_index) => values[expr_index.to_usize()].clone(),
+            CompiledExpr::Variable(expr_index) => values[*expr_index].clone(),
             CompiledExpr::Lit(value) => Some(value.clone()),
         }
     }

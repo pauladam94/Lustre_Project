@@ -8,8 +8,8 @@ use std::collections::VecDeque;
 
 #[derive(Debug, Clone)]
 pub struct CompiledNode {
-    vec: Vec<CompiledExpr>,
-    info: VecDeque<String>,
+    exprs: Vec<CompiledExpr>,
+    infos: Vec<String>,
     inputs: Vec<ExprIndex>,
     outputs: Vec<ExprIndex>,
     values: Vec<Option<Value>>,
@@ -20,7 +20,7 @@ impl std::fmt::Display for CompiledNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Instant = {}", self.instant)?;
         writeln!(f, "loop {{")?;
-        for ((i, expr), value) in self.vec.iter().enumerate().zip(self.values.iter()) {
+        for ((i, expr), value) in self.exprs.iter().enumerate().zip(self.values.iter()) {
             write!(
                 f,
                 "\t{i:<3} -   {:<10} >> {} // {:10}",
@@ -29,9 +29,9 @@ impl std::fmt::Display for CompiledNode {
                     Some(v) => &format!("{v}"),
                     None => "None",
                 },
-                self.info[i]
+                self.infos[i]
             )?;
-            if i != self.vec.len() - 1 {
+            if i != self.exprs.len() - 1 {
                 writeln!(f)?;
             }
         }
@@ -56,40 +56,166 @@ impl std::fmt::Display for CompiledNode {
     }
 }
 
-impl Default for CompiledNode {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl CompiledNode {
     pub fn new() -> Self {
         Self {
-            vec: Vec::new(),
-            info: VecDeque::new(),
+            exprs: Vec::new(),
+            infos: Vec::new(),
             inputs: vec![],
             outputs: vec![],
             values: vec![],
             instant: 0,
         }
     }
-    pub fn offset_index(&mut self, offset: usize) {
-        for expr in self.vec.iter_mut() {
-            expr.offset_index(offset);
+    pub fn move_into(
+        &self,
+        exprs: &mut Vec<CompiledExpr>,
+        infos: &mut Vec<String>,
+        index: usize,
+    ) -> ExprIndex {
+        CompiledNode::push_back_expr_core(
+            exprs,
+            infos,
+            self.exprs[index].clone(),
+            self.infos[index].clone(),
+        )
+    }
+    pub fn schedule(&self) -> Self {
+        use CompiledExpr::*;
+        let number_expression = self.len();
+
+        let mut marked = vec![true; number_expression];
+
+        // marked the node with the link to them
+        // the node with marked[node] == true
+        // are the top level node
+        for expr in self.exprs.iter() {
+            match expr {
+                Get { src: index } | UnaryOp { rhs: index, .. } | Variable(index) => {
+                    marked[*index] = false;
+                }
+                BinOp { lhs, op: _, rhs } => {
+                    marked[*lhs] = false;
+                    marked[*rhs] = false;
+                }
+                Array(items) | Tuple(items) => {
+                    items.iter().for_each(|index| marked[*index] = true);
+                }
+                _ => {}
+            }
         }
-        for expr in self.inputs.iter_mut() {
-            expr.offset_index(offset);
+
+        // done store the index in self.exprs that have been treated
+        let mut new_index: Vec<Option<ExprIndex>> = vec![None; self.len()];
+        let mut exprs = vec![];
+        let mut infos = vec![];
+
+        // mut infos;
+        eprintln!("marked = ");
+        marked.iter().enumerate().for_each(|(index, b)| {
+            if *b {
+                eprintln!("\t{index} is marked");
+                new_index[index] = Some(self.move_into(&mut exprs, &mut infos, index));
+            }
+        });
+        let mut pos = 0;
+
+        eprintln!("Debug {}", "ALGO".purple());
+        while pos < exprs.len() {
+            eprintln!(">> Algo at iteration {pos}");
+            exprs.iter().enumerate().for_each(|(i, e)| {
+                eprintln!(
+                    "\t{}{i}   -   {e}",
+                    if i == pos { " --> " } else { "     " }
+                );
+            });
+            match exprs[pos].clone() {
+                Set { src: index }
+                | Get { src: index }
+                | UnaryOp { rhs: index, .. }
+                | Variable(index) => {
+                    if new_index[index].is_none() {
+                        new_index[index] = Some(self.move_into(&mut exprs, &mut infos, index));
+                    }
+                }
+                BinOp { lhs, op: _, rhs } => {
+                    if new_index[lhs].is_none() {
+                        new_index[lhs] = Some(self.move_into(&mut exprs, &mut infos, lhs));
+                    }
+                    if new_index[rhs].is_none() {
+                        new_index[rhs] = Some(self.move_into(&mut exprs, &mut infos, rhs));
+                    }
+                }
+                Array(items) | Tuple(items) => items.into_iter().for_each(|e| {
+                    if new_index[e].is_none() {
+                        new_index[e] = Some(self.move_into(&mut exprs, &mut infos, e));
+                    }
+                }),
+                _ => {}
+            }
+            match &mut exprs[pos] {
+                Set { src: index }
+                | Get { src: index }
+                | UnaryOp { rhs: index, .. }
+                | Variable(index) => {
+                    *index = new_index[*index].unwrap();
+                }
+                BinOp { lhs, op: _, rhs } => {
+                    *lhs = new_index[*lhs].unwrap();
+                    *rhs = new_index[*rhs].unwrap();
+                }
+                Array(items) | Tuple(items) => {
+                    items
+                        .iter_mut()
+                        .enumerate()
+                        .for_each(|(pos, i)| *i = new_index[*i].unwrap());
+                }
+                _ => {}
+            }
+            pos += 1;
         }
-        for expr in self.outputs.iter_mut() {
-            expr.offset_index(offset);
+
+        eprintln!("new_index = ");
+        new_index.iter().enumerate().for_each(|(pos, index)| {
+            eprintln!(
+                "\t{pos} -> {}",
+                match index {
+                    Some(i) => format!("{i}"),
+                    None => format!("None"),
+                }
+            );
+        });
+
+        let values = vec![None; exprs.len()];
+        let outputs = self
+            .outputs
+            .iter()
+            .map(|index| new_index[*index].unwrap())
+            .collect();
+        let inputs = self
+            .inputs
+            .iter()
+            .map(|index| new_index[*index].unwrap())
+            .collect();
+
+        CompiledNode {
+            exprs,
+            infos,
+            inputs,
+            outputs,
+            values,
+            instant: 0,
         }
     }
+    pub fn len(&self) -> usize {
+        self.exprs.len()
+    }
     pub fn insert_expr(&mut self, index: usize, expr: CompiledExpr) {
-        self.vec.insert(index, expr);
+        self.exprs.insert(index, expr);
         self.values.push(None);
     }
     pub fn insert_info(&mut self, index: usize, info: String) {
-        self.info.insert(index, info);
+        self.infos.insert(index, info);
         self.values.push(None);
     }
     pub fn set_inputs(&mut self, inputs: Vec<ExprIndex>) {
@@ -98,76 +224,77 @@ impl CompiledNode {
     pub fn set_outputs(&mut self, outputs: Vec<ExprIndex>) {
         self.outputs = outputs;
     }
+    pub fn set_values_to_none(&mut self) {
+        self.values = vec![None; self.len()];
+    }
     pub fn replace_expr(&mut self, expr: CompiledExpr, index: ExprIndex) {
-        self.vec[index.to_usize()] = expr;
+        self.exprs[index] = expr;
     }
     pub fn back_index(&self) -> ExprIndex {
-        ExprIndex::new(self.vec.len())
+        self.exprs.len()
     }
-    pub fn push_back_expr_previous(&mut self, expr: CompiledExpr, info: String) -> ExprIndex {
-        self.vec.push(expr);
-        self.info.push_back(info);
-        self.values.push(None);
-        ExprIndex::new(self.vec.len() - 1)
+    pub fn push_back_expr_core(
+        exprs: &mut Vec<CompiledExpr>,
+        infos: &mut Vec<String>,
+        expr: CompiledExpr,
+        info: String,
+    ) -> ExprIndex {
+        exprs.push(expr);
+        infos.push(info);
+        exprs.len() - 1
     }
     pub fn push_back_expr(&mut self, expr: CompiledExpr, info: String) -> ExprIndex {
+        CompiledNode::push_back_expr_core(&mut self.exprs, &mut self.infos, expr, info)
+    }
+    pub fn push_back_expr_memo(&mut self, expr: CompiledExpr, info: String) -> ExprIndex {
         // NO Memoisation for now
-        if false {
+        if true {
             // Memoisation of compilation, if we push something already compiled this
             // we return the one already compiled
             if expr != CompiledExpr::Output
-                && let Some(i) = self.vec.iter().position(|x| x == &expr)
+                && expr != CompiledExpr::Input // maybe not useful
+                && let Some(i) = self.exprs.iter().position(|x| x == &expr)
             {
-                // println!("PUSH (already here at {i}) : {expr}");
-
-                ExprIndex::new(i)
+                // eprintln!("PUSH (already here at {i}) : {expr}");
+                i
             } else {
                 // eprintln!("PUSH (not already here) : {expr}");
-
-                self.vec.push(expr);
-                self.info.push_back(info);
-                self.values.push(None);
-                ExprIndex::new(self.vec.len() - 1)
+                self.push_back_expr(expr, info)
             }
         } else {
-            self.push_back_expr_previous(expr, info)
+            self.push_back_expr(expr, info)
         }
     }
 
     pub fn add_info(&mut self, index: ExprIndex, info: String) {
-        self.info[index.to_usize()] = format!("{} - {}", info, self.info[index.to_usize()]);
+        self.infos[index] = format!("{} - {}", info, self.infos[index]);
     }
-}
 
-impl CompiledNode {
-    pub fn reset(&mut self) {
-        self.instant = 0;
-    }
     pub fn step(&mut self, inputs: Vec<Value>) -> Vec<Value> {
         // println!("{} >>\n{}\n", "COMPILE".blue(), &self);
         let Self {
-            vec,
-            info,
+            exprs: vec,
+            infos: info,
             inputs: inputs_index,
             outputs: outputs_index,
             values,
             instant,
         } = self;
         for (index, val) in inputs_index.iter().zip(inputs.into_iter()) {
-            values[index.to_usize()] = Some(val);
+            values[*index] = Some(val);
         }
         for (pos, expr) in vec.iter().enumerate().rev() {
             if expr == &CompiledExpr::Input {
                 continue;
             }
-            values[pos] = expr.compute(values, instant);
+            values[pos] = expr.compute_one_step(values, instant);
         }
         eprintln!(
             "{} >>\n{}\n",
             "COMPILE".blue(),
             Self {
-                vec: vec.clone(),
-                info: info.clone(),
+                exprs: vec.clone(),
+                infos: info.clone(),
                 inputs: inputs_index.clone(),
                 outputs: outputs_index.clone(),
                 values: values.clone(),
@@ -176,7 +303,7 @@ impl CompiledNode {
         );
         let mut res = vec![];
         for output in outputs_index.iter() {
-            res.push(values[output.to_usize()].clone().unwrap());
+            res.push(values[*output].clone().unwrap());
         }
 
         self.instant += 1;
