@@ -1,10 +1,4 @@
 use crate::parser::span::LSpan;
-use nom::IResult;
-use nom::branch::alt;
-use nom::bytes::complete::{tag, take_till, take_until};
-use nom::character::complete::anychar;
-use nom::combinator::value;
-use nom::multi::many_till;
 use nom::sequence::delimited;
 use nom::{Parser, character::complete::multispace0, error::ParseError};
 
@@ -23,17 +17,15 @@ where
 //     let mut depth = 0;
 //     (input, _) = multispace0(input)?;
 //     loop {
-//         match alt((
-//             value(-1, tag("*)")),
-//             value(1, tag("(*"))
-//         )).parse(input) {
+//         let mut a = alt((value(-1, tag("*)")), value(1, tag("(*"))));
+//         match a.parse(input) {
 //             Ok((new_input, val)) => {
 //                 depth += val;
 //                 if depth == 0 {
 //                     break;
 //                 }
 //             }
-//             Err(_) => {
+//             Err(e) => {
 //                 (input, _) = anychar(input)?;
 //             }
 //         }

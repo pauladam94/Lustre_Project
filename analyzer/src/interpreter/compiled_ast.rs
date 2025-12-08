@@ -1,10 +1,8 @@
-use colored::Colorize;
-
 use crate::{
     interpreter::{compiled_expr::CompiledExpr, expr_index::ExprIndex},
     parser::literal::Value,
 };
-use std::collections::VecDeque;
+use colored::Colorize;
 
 #[derive(Debug, Clone)]
 pub struct CompiledNode {
@@ -168,7 +166,7 @@ impl CompiledNode {
                     items
                         .iter_mut()
                         .enumerate()
-                        .for_each(|(pos, i)| *i = new_index[*i].unwrap());
+                        .for_each(|(_, i)| *i = new_index[*i].unwrap());
                 }
                 _ => {}
             }

@@ -46,7 +46,7 @@ impl SemanticTokenVisitor {
 }
 
 impl Visitor for SemanticTokenVisitor {
-    fn visit_var_type(&mut self, t: &VarType) {}
+    fn visit_var_type(&mut self, _: &VarType) {}
     fn visit_node(&mut self, x: &Node) {
         self.push(x.span_node.to_semantic_token(TokenType::Keyword));
         if let Some((_, t)) = &x.tag {

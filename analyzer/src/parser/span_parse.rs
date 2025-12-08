@@ -1,7 +1,7 @@
 use crate::parser::span::LSpan;
 use nom::IResult;
 
-pub trait SpanParse
+pub trait _SpanParse
 where
     Self: Sized,
 {

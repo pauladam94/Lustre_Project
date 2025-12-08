@@ -276,23 +276,42 @@ impl CheckerInfo {
             },
             Expr::Lit(val) => Some(val.get_type()),
             Expr::Array(arr) => {
-                let mut t = None;
+                let mut t0 = None;
+                let mut initialized = true;
                 for e in arr.iter() {
-                    match &t {
+                    match &t0 {
                         None => {
-                            t = self.get_type_equation(node, e);
-                        }
-                        Some(t2) => {
                             let t1 = self.get_type_equation(node, e)?;
-                            if &t1 != t2 {
+                            initialized = initialized && t1.initialized;
+                            t0 = Some(t1);
+                        }
+                        Some(t0) => {
+                            let t1 = self.get_type_equation(node, e)?;
+                            initialized = initialized && t1.initialized;
+                            if !t1.equal_without_pre(t0) {
                                 return None;
                             }
                         }
                     }
                 }
                 Some(VarType {
-                    initialized: true,
-                    inner: InnerVarType::Array(Box::new(t?.inner)),
+                    initialized,
+                    inner: InnerVarType::Array(Box::new(t0?.inner)),
+                })
+            }
+            Expr::Tuple(arr) => {
+                let mut types = vec![];
+                let mut initialized = true;
+
+                for e in arr.iter() {
+                    let t = self.get_type_equation(node, e)?;
+                    initialized = initialized && t.initialized;
+                    types.push(t.inner);
+                }
+
+                Some(VarType {
+                    initialized,
+                    inner: InnerVarType::Tuple(types),
                 })
             }
             Expr::FCall { name, args } => {
@@ -303,7 +322,12 @@ impl CheckerInfo {
                 };
                 self.get_type_function(node, name, args)
             }
-            Expr::If { cond, yes, no } => todo!(),
+
+            Expr::If {
+                cond: _,
+                yes: _,
+                no: _,
+            } => todo!(), // TODO
         }
     }
 

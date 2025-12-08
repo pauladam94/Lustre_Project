@@ -7,6 +7,7 @@ use crate::parser::literal::literal;
 use crate::parser::span::Ident;
 use crate::parser::span::LSpan;
 use crate::parser::span::Span;
+use crate::parser::tuple::tuple;
 use crate::parser::unary_op::UnaryOp;
 use crate::parser::white_space::ws;
 use nom::IResult;
@@ -44,6 +45,7 @@ pub enum Expr {
         no: Box<Expr>,
     },
     Array(Vec<Expr>),
+    Tuple(Vec<Expr>),
     FCall {
         name: Ident,
         args: Vec<Expr>,
@@ -55,17 +57,19 @@ pub enum Expr {
 impl Expr {
     pub fn get_value(&self) -> Option<Value> {
         match self {
-            Expr::If { .. } // TODO maybe do better if the condition is true
-            | Expr::BinOp { .. }
-            | Expr::FCall { .. }
-            | Expr::Variable(_) => None,
+            Expr::If { cond, yes, no } => match cond.as_ref() {
+                Expr::Lit(Value::Bool(true)) => yes.get_value(),
+                Expr::Lit(Value::Bool(false)) => no.get_value(),
+                _ => None,
+            },
+            Expr::BinOp { .. } | Expr::FCall { .. } | Expr::Variable(_) => None,
             Expr::UnaryOp { op, rhs, .. } => {
                 let rv = rhs.get_value()?;
                 match op {
                     UnaryOp::Inv => match rv {
                         Value::Integer(i) => Some(Value::Integer(-i)),
                         Value::Float(f) => Some(Value::Float(-f)),
-                        _ => todo!()
+                        _ => todo!(),
                     },
                     UnaryOp::Pre => None,
                     UnaryOp::Not => match rv {
@@ -77,15 +81,27 @@ impl Expr {
                         Value::Array(values) => Some(Value::Array(
                             values
                                 .into_iter()
-                                .map(|v| if let Value::Bool(b) = v {
-                                    Value::Bool(!b)
-                                } else {
+                                .map(|v| {
+                                    if let Value::Bool(b) = v {
+                                        Value::Bool(!b)
+                                    } else {
                                         unreachable!()
+                                    }
                                 })
-                                .collect()
+                                .collect(),
                         )),
                     },
                 }
+            }
+            Expr::Tuple(exprs) => {
+                let mut const_exprs = vec![];
+                for expr in exprs.iter() {
+                    match expr.get_value() {
+                        Some(value_expr) => const_exprs.push(value_expr),
+                        None => return None,
+                    }
+                }
+                return Some(Value::Array(const_exprs));
             }
             Expr::Array(exprs) => {
                 let mut const_exprs = vec![];
@@ -158,15 +174,23 @@ impl Expr {
                 }
                 write!(f, ")")
             }
-            Expr::Array(v) => {
-                write!(f, "[")?;
+            Expr::Tuple(v) | Expr::Array(v) => {
+                if let Expr::Tuple(_) = self {
+                    write!(f, "(")?;
+                } else {
+                    write!(f, "[")?;
+                }
                 for (i, expr) in v.iter().enumerate() {
                     write!(f, "{expr}")?;
                     if i != v.len() - 1 {
                         write!(f, ", ")?;
                     }
                 }
-                write!(f, "]")
+                if let Expr::Tuple(_) = self {
+                    write!(f, ")")
+                } else {
+                    write!(f, "]")
+                }
             }
             Expr::If { cond, yes, no } => {
                 write!(f, "if")?;
@@ -212,6 +236,7 @@ pub(crate) fn expression(input: LSpan) -> IResult<LSpan, Expr> {
         alt((
             delimited(ws(tag("(")), ws(expression), ws(tag(")"))),
             map(array, Expr::Array),
+            map(tuple, Expr::Tuple),
             map(func_call, |(name, args)| Expr::FCall { name, args }),
             map(ws(literal), Expr::Lit),
             map(ws(identifier), Expr::Variable),

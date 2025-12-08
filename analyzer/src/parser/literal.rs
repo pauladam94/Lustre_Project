@@ -3,6 +3,7 @@ use crate::parser::span::LSpan;
 use crate::parser::span::Span;
 use crate::parser::var_type::InnerVarType;
 use crate::parser::var_type::VarType;
+use crate::parser::white_space::ws;
 use lsp_types::Range;
 use nom::IResult;
 use nom::Parser;
@@ -173,7 +174,7 @@ fn float(input: LSpan) -> IResult<LSpan, f64> {
 }
 
 fn unit(input: LSpan) -> IResult<LSpan, ()> {
-    value((), (tag("("), multispace0, tag(")"))).parse(input)
+    value((), (ws(tag("(")), ws(tag(")")))).parse(input)
 }
 
 pub(crate) fn literal(input: LSpan) -> IResult<LSpan, Value> {
@@ -197,11 +198,11 @@ mod tests {
     #[test]
     fn basic_identifier_0() {
         ok_test(identifier, "asvb  rest");
-        // ok_test(identifier, "a2_b2");
-        // ok_test(identifier, "a_cjdncjdncdj");
-        // error_test(identifier, "2a_c");
-        // error_test(identifier, "_a_cjncdj");
-        // error_test(identifier, "124a_cdj");
+        ok_test(identifier, "a2_b2");
+        ok_test(identifier, "a_cjdncjdncdj");
+        error_test(identifier, "2a_c");
+        error_test(identifier, " 4a_cjncdj");
+        error_test(identifier, "124a_cdj");
     }
     #[test]
     fn basic_identifier_2() {

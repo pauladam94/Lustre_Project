@@ -3,7 +3,7 @@ install-lsp:
 
 build-vscode-extension:
     cargo build --release --target x86_64-unknown-linux-gnu --bin lustrels
-    cp target/release/lustrels vscode_extension/server/lustrels.linux
+    cp target/x86_64-unknown-linux-gnu/release/lustrels vscode_extension/server/lustrels.linux
 
     # cargo build --release --target wasm32-unknown-unknown --bin lustrels
     # cp target/release/lustrels vscode_extension/server/lustrels.wasm

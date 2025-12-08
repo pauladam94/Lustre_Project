@@ -109,13 +109,19 @@ impl Compiler {
                 self.ast
                     .push_back_expr_memo(CompiledExpr::UnaryOp { op: *op, rhs: irhs }, info)
             }
-            Expr::Array(exprs) => {
-                let mut iexprs = vec![];
-                for e in exprs.iter() {
-                    iexprs.push(self.compile_expr(ast, node, inputs, outputs, vars, e));
+            Expr::Array(exprs) | Expr::Tuple(exprs) => {
+                let iexprs: Vec<ExprIndex> = exprs
+                    .iter()
+                    .map(|e| self.compile_expr(ast, node, inputs, outputs, vars, e))
+                    .collect();
+
+                if let Expr::Array(_) = expr {
+                    self.ast
+                        .push_back_expr_memo(CompiledExpr::Array(iexprs), info)
+                } else {
+                    self.ast
+                        .push_back_expr_memo(CompiledExpr::tuple_from_vec(iexprs), info)
                 }
-                self.ast
-                    .push_back_expr_memo(CompiledExpr::Array(iexprs), info)
             }
             Expr::FCall { name, args } => {
                 let iargs: Vec<ExprIndex> = args
@@ -156,7 +162,11 @@ impl Compiler {
             Expr::Lit(value) => self
                 .ast
                 .push_back_expr_memo(CompiledExpr::Lit(value.clone()), info),
-            Expr::If { cond, yes, no } => todo!(),
+            Expr::If {
+                cond: _,
+                yes: _,
+                no: _,
+            } => todo!(),
         }
     }
 

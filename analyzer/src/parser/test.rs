@@ -534,23 +534,56 @@ tel
     }
 
     #[test]
-    fn fibonacci_5_ok() {
+    fn arrow_plus_chain_ok() {
         ok_parse(
             "
-node fibo() returns (z : int);
+node a() returns ();
 let
-	x0 = pre z;
-	x1 = pre pre z;
 	z = 1 -> (1 -> (x0 + x1));
-tel
-
-#[test]
-node test2() returns (z : bool);
+	z = 1 -> (1 -> (x0 fby x1));
+tel",
+        );
+    }
+    #[test]
+    fn arrow_chain_ok() {
+        ok_parse(
+            "
+node a() returns ();
 let
-	lhs = fibo([(), (), (), ()]);
-	rhs = [2, 4, 6];
-	z = lhs == rhs;
+	z = 1 -> (1 -> (x0 -> x1));
+	x = 1 -> 2 -> 3;
+tel",
+        );
+    }
+    #[test]
+    fn chain_operator_1_ok() {
+        ok_parse(
+            "
+node a() returns ();
+let
+	z = (1 -> (1 + 3) -> x0 + z) -> x1;
+tel",
+        );
+    }
+    #[test]
+    fn chain_operator_2_ok() {
+        ok_parse(
+            "
+node a() returns ();
+let
+	z = 1 -> (1 -> (x0 fby x1));
+tel",
+        );
+    }
+    #[test]
+    fn chain_operator_3_ok() {
+        ok_parse(
+            "
+node a() returns ();
+let
+	z = 1 + (1 -> (x0 fby x1));
 tel",
         );
     }
 }
+

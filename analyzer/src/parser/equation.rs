@@ -4,22 +4,10 @@ use crate::parser::{
     span::{Ident, LSpan, Span},
     white_space::ws,
 };
-use nom::{
-    IResult, Parser,
-    bytes::complete::tag,
-    multi::{fold, many0},
-    sequence::{separated_pair, terminated},
-};
+use nom::{IResult, Parser, bytes::complete::tag, multi::fold, sequence::separated_pair};
 
 pub(crate) fn equation(input: LSpan) -> IResult<LSpan, (Ident, Expr)> {
-    separated_pair(
-        // ws(complete(identifier)),
-        // ws(complete(tag("="))),
-        ws(identifier),
-        ws(tag("=")),
-        ws(expression),
-    )
-    .parse(input)
+    separated_pair(ws(identifier), ws(tag("=")), ws(expression)).parse(input)
 }
 
 pub(crate) fn equations(input: LSpan) -> IResult<LSpan, (Vec<(Ident, Expr)>, Vec<Span>)> {
@@ -38,10 +26,7 @@ pub(crate) fn equations(input: LSpan) -> IResult<LSpan, (Vec<(Ident, Expr)>, Vec
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::{
-        equation::equations,
-        test::{error_test, ok_test},
-    };
+    use crate::parser::{equation::equations, test::ok_test};
 
     #[test]
     fn one_equation() {

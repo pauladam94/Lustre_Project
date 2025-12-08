@@ -22,8 +22,8 @@ pub enum CompiledExpr {
         op: UnaryOp,
         rhs: ExprIndex,
     },
-    Array(Vec<ExprIndex>),
-    Tuple(Vec<ExprIndex>),
+    Array(Vec<ExprIndex>), // TODO remove this
+    Tuple(Vec<ExprIndex>), // TODO remove this
     Variable(ExprIndex),
     Lit(Value),
 }
@@ -83,23 +83,6 @@ impl CompiledExpr {
             _ => Self::Tuple(vec),
         }
     }
-    // pub fn offset_index(&mut self, offset: usize) {
-    //     match self {
-    //         CompiledExpr::Input => {}
-    //         CompiledExpr::Output => {}
-    //         CompiledExpr::Set { src } => src.offset_index(offset),
-    //         CompiledExpr::Get { src } => {}
-    //         CompiledExpr::BinOp { lhs, op, rhs } => {
-    //             lhs.offset_index(offset);
-    //             rhs.offset_index(offset)
-    //         }
-    //         CompiledExpr::UnaryOp { op, rhs } => rhs.offset_index(offset),
-    //         CompiledExpr::Array(items) => items.iter_mut().for_each(|e| e.offset_index(offset)),
-    //         CompiledExpr::Tuple(items) => items.iter_mut().for_each(|e| e.offset_index(offset)),
-    //         CompiledExpr::Variable(expr_index) => expr_index.offset_index(offset),
-    //         CompiledExpr::Lit(value) => {}
-    //     }
-    // }
 
     pub fn compute_one_step(&self, values: &Vec<Option<Value>>, instant: &u64) -> Option<Value> {
         match self {
@@ -151,11 +134,11 @@ impl CompiledExpr {
                     (_, _) => None,
                 }
             }
-            CompiledExpr::UnaryOp { op, rhs } => {
-                todo!()
+            CompiledExpr::UnaryOp { op: _, rhs: _ } => {
+                todo!() // TODO
             }
-            CompiledExpr::Array(items) => todo!(),
-            CompiledExpr::Tuple(items) => todo!(),
+            CompiledExpr::Array(_) => todo!(),
+            CompiledExpr::Tuple(_) => todo!(),
             CompiledExpr::Variable(expr_index) => values[*expr_index].clone(),
             CompiledExpr::Lit(value) => Some(value.clone()),
         }

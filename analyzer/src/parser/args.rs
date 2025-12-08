@@ -1,4 +1,3 @@
-use crate::parser::span::Span;
 use crate::parser::var_type::var_type;
 use crate::parser::{
     literal::identifier,

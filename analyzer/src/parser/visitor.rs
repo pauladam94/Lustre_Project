@@ -4,12 +4,12 @@ use crate::parser::{
 };
 
 pub(crate) trait Visitor {
-    fn visit_bin_op(&mut self, x: &BinOp) {}
-    fn visit_unary_op(&mut self, x: &UnaryOp) {}
+    fn visit_bin_op(&mut self, _: &BinOp) {}
+    fn visit_unary_op(&mut self, _: &UnaryOp) {}
 
-    fn visit_span(&mut self, x: &Span) {}
+    fn visit_span(&mut self, _: &Span) {}
 
-    fn visit_literal(&mut self, x: &Value) {}
+    fn visit_literal(&mut self, _: &Value) {}
     fn visit_tag(&mut self, _: &Tag) {}
     fn visit_var_type(&mut self, _: &VarType) {}
 
@@ -34,7 +34,7 @@ pub(crate) trait Visitor {
                 self.visit_unary_op(op);
                 self.visit_expr(rhs);
             }
-            Expr::Array(arr) => arr.iter().for_each(|x| self.visit_expr(x)),
+            Expr::Array(arr) | Expr::Tuple(arr) => arr.iter().for_each(|x| self.visit_expr(x)),
             Expr::FCall { name, args } => {
                 self.visit_span(name);
                 args.iter().for_each(|e| self.visit_expr(e));

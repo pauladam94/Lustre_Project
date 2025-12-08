@@ -8,7 +8,6 @@ use crate::{
         span::{PositionEnd, Span},
     },
 };
-use colored::Colorize;
 use lsp_types::{InlayHint, InlayHintLabel, Position};
 use std::collections::HashMap;
 
@@ -43,10 +42,10 @@ impl PropagaterConst {
     }
 
     fn reduced_test_hint(&mut self) {
-        if self.ast.last_nodes_is_test() {
-            if let Some((position, label)) = self.ast.hint_last_node_reduced_test() {
-                self.push_hint(position, label)
-            }
+        if self.ast.last_nodes_is_test()
+            && let Some((position, label)) = self.ast.hint_last_node_reduced_test()
+        {
+            self.push_hint(position, label)
         }
     }
 }
@@ -192,7 +191,6 @@ impl PropagaterConst {
                 // Compile & Interpret the function because arguments are constant
                 let mut compile_ast = ast.compile(name.clone());
 
-
                 match call_type {
                     FunctionCallType::Simple => {
                         Expr::Lit(Value::tuple_from_vec(compile_ast.step(inputs)))
@@ -279,13 +277,25 @@ impl PropagaterConst {
     fn const_node(&mut self, ast: &Ast, node: &Node) {
         let shell_node = Node::shell_from_node(node);
         self.ast.nodes.push(shell_node);
-        for (out, t) in node.outputs.iter() {
-            for (name, expr) in node.let_bindings.iter() {
+
+        for (out, _) in node.outputs.iter() {
+            for (i, (name, expr)) in node.let_bindings.iter().enumerate() {
                 if out == name {
                     self.seen_equations.insert(name.clone(), None);
-                    let e = self.const_expr(ast, node, expr);
-                    self.seen_equations.insert(name.clone(), e.get_value());
-                    self.ast.push_expr(name.clone(), e);
+                    let new_expr = self.const_expr(ast, node, expr);
+
+                    let val = new_expr.get_value();
+                    if let Some(v) = &val {
+                        self.push_hint(
+                            node.span_semicolon_equations[i].position_end(),
+                            format!(">> {}", v),
+                        );
+                    }
+
+                    self.seen_equations.insert(name.clone(), val);
+                    self.ast.push_expr(name.clone(), new_expr);
+
+                    return;
                 }
             }
         }

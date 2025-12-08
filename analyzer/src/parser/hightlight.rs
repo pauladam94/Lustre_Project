@@ -6,14 +6,14 @@ use lsp_types::{DocumentHighlight, DocumentHighlightKind};
 
 #[derive(Debug)]
 pub(crate) struct DocumentHighlightVisitor {
-    searched_span: Option<Span>,
+    _searched_span: Option<Span>,
     hightlights: Vec<DocumentHighlight>,
 }
 
 impl DocumentHighlightVisitor {
     pub fn new() -> Self {
         Self {
-            searched_span: None,
+            _searched_span: None,
             hightlights: vec![],
         }
     }

@@ -10,6 +10,7 @@ pub(crate) mod ftag;
 pub(crate) mod func_call;
 pub(crate) mod literal;
 pub(crate) mod node;
+pub(crate) mod tuple;
 pub(crate) mod unary_op;
 pub(crate) mod var_type;
 pub(crate) mod white_space;
