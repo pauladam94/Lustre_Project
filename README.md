@@ -18,7 +18,7 @@ Project around the Lustre programming language aiming at providing :
 - [ ] fix error parsing of 1 -> 1 -> a + b
 - [ ] parse comments
 - [ ] parse tuple on the left of expression
-- [ ] parse tuple in expression
+- [x] parse tuple in expression
 - [ ] parse vars
 - [ ] more faulty parser
 - [ ] loss less parser

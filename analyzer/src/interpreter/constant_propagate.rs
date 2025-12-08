@@ -94,7 +94,8 @@ impl PropagaterConst {
                         Neq => Expr::Lit(Value::Bool(lv != rv)),
                         _ => expr.clone(),
                     },
-                    (Some(Value::Array(l)), Some(Value::Array(r))) => match op {
+                    (Some(Value::Array(l)), Some(Value::Array(r)))
+                    | (Some(Value::Tuple(l)), Some(Value::Tuple(r))) => match op {
                         Eq => {
                             for (lv, rv) in l.iter().zip(r.iter()) {
                                 if lv != rv {
@@ -134,6 +135,12 @@ impl PropagaterConst {
                 span_op: span_op.clone(),
                 rhs: Box::new(self.const_expr(ast, node, rhs)),
             },
+            Expr::Tuple(exprs) => Expr::Tuple(
+                exprs
+                    .iter()
+                    .map(|e| self.const_expr(ast, node, e))
+                    .collect(),
+            ),
             Expr::Array(exprs) => Expr::Array(
                 exprs
                     .iter()
@@ -200,14 +207,13 @@ impl PropagaterConst {
                         let array_inputs = Value::unwrap_array(inputs).unwrap();
                         // We know this is ok because no function has 0 arguments (always at least unit)
                         let number_steps = array_inputs[0].len();
-                        let number_inputs = array_inputs.len();
 
                         let mut array_outputs = vec![];
 
                         for instant in 0..number_steps {
                             let mut input = vec![];
-                            for pos in 0..number_inputs {
-                                input.push(array_inputs[pos][instant].clone())
+                            for x in array_inputs.iter() {
+                                input.push(x[instant].clone())
                             }
 
                             eprint!("At instant {instant}, input is : [");

@@ -211,6 +211,9 @@ impl CompiledNode {
     pub fn len(&self) -> usize {
         self.exprs.len()
     }
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
     pub fn insert_expr(&mut self, index: usize, expr: CompiledExpr) {
         self.exprs.insert(index, expr);
         self.values.push(None);

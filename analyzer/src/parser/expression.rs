@@ -93,7 +93,7 @@ impl Expr {
                     },
                 }
             }
-            Expr::Tuple(exprs) => {
+            Expr::Tuple(exprs) | Expr::Array(exprs) => {
                 let mut const_exprs = vec![];
                 for expr in exprs.iter() {
                     match expr.get_value() {
@@ -101,17 +101,11 @@ impl Expr {
                         None => return None,
                     }
                 }
-                Some(Value::Array(const_exprs))
-            }
-            Expr::Array(exprs) => {
-                let mut const_exprs = vec![];
-                for expr in exprs.iter() {
-                    match expr.get_value() {
-                        Some(value_expr) => const_exprs.push(value_expr),
-                        None => return None,
-                    }
+                if let Expr::Tuple(_) = self {
+                    Some(Value::Tuple(const_exprs))
+                } else {
+                    Some(Value::Array(const_exprs))
                 }
-                Some(Value::Array(const_exprs))
             }
             Expr::Lit(lit) => Some(lit.clone()),
         }

@@ -144,7 +144,7 @@ pub(crate) fn numeral_string(i: usize) -> String {
     }
 }
 impl CheckerInfo {
-    fn get_type_equation(&mut self, node: &Node, expr: &Expr) -> Option<VarType> {
+    fn get_type_expression(&mut self, node: &Node, expr: &Expr) -> Option<VarType> {
         match expr {
             Expr::BinOp {
                 lhs,
@@ -152,8 +152,8 @@ impl CheckerInfo {
                 span_op,
                 rhs,
             } => {
-                let lt = self.get_type_equation(node, lhs)?;
-                let rt = self.get_type_equation(node, rhs)?;
+                let lt = self.get_type_expression(node, lhs)?;
+                let rt = self.get_type_expression(node, rhs)?;
                 let message = format!(
                     "Got type '{}' on the left and '{}' on the right\n but expected to have the same type.",
                     lt, rt
@@ -177,8 +177,8 @@ impl CheckerInfo {
                 span_op,
                 rhs,
             } => {
-                let lt = self.get_type_equation(node, lhs)?;
-                let rt = self.get_type_equation(node, rhs)?;
+                let lt = self.get_type_expression(node, lhs)?;
+                let rt = self.get_type_expression(node, rhs)?;
                 if lt == rt {
                     Some(VarType {
                         initialized: true,
@@ -200,8 +200,8 @@ impl CheckerInfo {
                 span_op,
                 rhs,
             } => {
-                let lt = self.get_type_equation(node, lhs)?;
-                let rt = self.get_type_equation(node, rhs)?;
+                let lt = self.get_type_expression(node, lhs)?;
+                let rt = self.get_type_expression(node, rhs)?;
                 if lt.is_not_initialized() {
                     self.push_diagnostic(Diagnostic {
                         message: format!(
@@ -230,13 +230,13 @@ impl CheckerInfo {
                 op: UnaryOp::Inv,
                 span_op: _,
                 rhs,
-            } => self.get_type_equation(node, rhs),
+            } => self.get_type_expression(node, rhs),
             Expr::UnaryOp {
                 op: UnaryOp::Pre,
                 span_op,
                 rhs,
             } => {
-                let mut t = self.get_type_equation(node, rhs)?;
+                let mut t = self.get_type_expression(node, rhs)?;
                 if t.is_initialized() {
                     t.uninitialized();
                     Some(t)
@@ -255,7 +255,7 @@ impl CheckerInfo {
                 span_op: _,
                 rhs,
             } => {
-                let t = self.get_type_equation(node, rhs)?;
+                let t = self.get_type_expression(node, rhs)?;
                 Some(t)
             }
             Expr::Variable(s) => match self.local_types.get(s) {
@@ -281,12 +281,12 @@ impl CheckerInfo {
                 for e in arr.iter() {
                     match &t0 {
                         None => {
-                            let t1 = self.get_type_equation(node, e)?;
+                            let t1 = self.get_type_expression(node, e)?;
                             initialized = initialized && t1.initialized;
                             t0 = Some(t1);
                         }
                         Some(t0) => {
-                            let t1 = self.get_type_equation(node, e)?;
+                            let t1 = self.get_type_expression(node, e)?;
                             initialized = initialized && t1.initialized;
                             if !t1.equal_without_pre(t0) {
                                 return None;
@@ -304,7 +304,7 @@ impl CheckerInfo {
                 let mut initialized = true;
 
                 for e in arr.iter() {
-                    let t = self.get_type_equation(node, e)?;
+                    let t = self.get_type_expression(node, e)?;
                     initialized = initialized && t.initialized;
                     types.push(t.inner);
                 }
@@ -369,7 +369,7 @@ impl CheckerInfo {
                 }
                 for (i, (arg, (_, expected_type))) in args.iter().zip(ft.inputs.iter()).enumerate()
                 {
-                    match self.get_type_equation(node, arg) {
+                    match self.get_type_expression(node, arg) {
                         Some(t) => match call_type {
                             FunctionCallType::Unknown => {
                                 // Always reachable because
@@ -480,7 +480,7 @@ impl CheckerInfo {
     fn get_type_var(&mut self, node: &Node, var: &Span) -> Option<VarType> {
         for (name, expr) in node.let_bindings.iter() {
             if name == var {
-                let var_type = self.get_type_equation(node, expr);
+                let var_type = self.get_type_expression(node, expr);
                 self.local_types.insert(name.clone(), var_type.clone());
                 return var_type;
             }
@@ -495,7 +495,7 @@ impl CheckerInfo {
     }
 
     /// Setup partial Local Type in the Checker
-    /// - Check that variables are not defined twice in equations
+    /// - Check that variables are not defined twice in left of equations
     fn setup_local_types(&mut self, node: &Node) {
         // insert all inputs types
         for (name, t) in node.inputs.iter() {
@@ -578,20 +578,30 @@ impl CheckerInfo {
         }
     }
 
-    fn check_ast(&mut self, x: &Ast) {
-        self.get_nodes_types(x);
-
-        for node in x.nodes.iter() {
-            self.check_node(node);
-            for (var, _) in node.let_bindings.iter() {
-                if let Some(Some(t)) = self.local_types.get(var) {
-                    self.push_hint(
-                        var.position_end(),
-                        format!(" : {t}"),
-                        Some(InlayHintKind::TYPE),
-                    );
-                }
+    // Push for all equations the type hint that has been
+    // computed from the type inference
+    fn push_type_hint_equation(&mut self, node: &Node) {
+        for (var, _) in node.let_bindings.iter() {
+            if let Some(Some(t)) = self.local_types.get(var) {
+                self.push_hint(
+                    var.position_end(),
+                    format!(" : {t}"),
+                    Some(InlayHintKind::TYPE),
+                );
             }
+        }
+    }
+
+    // Completely check the types for a given ast
+    //
+    // The check is modular for every node
+    // given the types of all the nodes.
+    fn check_ast(&mut self, ast: &Ast) {
+        self.get_nodes_types(ast);
+
+        for node in ast.nodes.iter() {
+            self.check_node(node);
+            self.push_type_hint_equation(node);
         }
     }
 }

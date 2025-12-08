@@ -17,7 +17,7 @@ pub fn ok_check(input: &str) {
             "DIAGS".blue(),
             diags
         );
-        assert!(false);
+        panic!()
     }
 }
 
@@ -31,7 +31,7 @@ pub fn error_check(input: &str) {
             "{}: error expected but no diagnos + 1;tics",
             ">> ERROR".red()
         );
-        assert!(false);
+        panic!()
     }
 }
 

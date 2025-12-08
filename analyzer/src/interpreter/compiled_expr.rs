@@ -84,7 +84,7 @@ impl CompiledExpr {
         }
     }
 
-    pub fn compute_one_step(&self, values: &Vec<Option<Value>>, instant: &u64) -> Option<Value> {
+    pub fn compute_one_step(&self, values: &[Option<Value>], instant: &u64) -> Option<Value> {
         match self {
             CompiledExpr::Input => None,
             CompiledExpr::Output => {

@@ -17,7 +17,7 @@ where
         Err(err) => {
             println!("{}\n{}", ">> input :".blue(), input);
             println!("{}\n{:#?}", ">> ERROR:".red(), err);
-            assert!(false);
+            panic!();
         }
     }
 }
@@ -31,7 +31,7 @@ where
         println!("{}:\n{}", ">> input".blue(), input);
         println!("{}\n{:#?}", ">> output :".red(), output);
         println!("{}\n{}", ">> rest :".red(), rest);
-        assert!(false);
+        panic!();
     }
 }
 
@@ -41,7 +41,7 @@ pub fn error_parse(input: &str) {
     if let Ok((_, res)) = ast(span) {
         println!("{}\n{input}", ">> input : ".blue());
         println!("{}\n{res}", ">> result : ".red());
-        assert!(false);
+        panic!();
     }
 }
 
@@ -129,7 +129,7 @@ pub fn ok_parse(input: &str) {
     }
 
     if one_test_failed {
-        assert!(false)
+        panic!()
     }
 }
 

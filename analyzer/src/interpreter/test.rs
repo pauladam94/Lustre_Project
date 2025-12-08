@@ -13,7 +13,7 @@ pub fn ok_interpretation(input: &str) {
 
     for node in const_ast.nodes.iter() {
         if node.is_test() && !node.is_only_true_equations() {
-            assert!(false);
+            panic!()
         }
     }
 }
@@ -26,7 +26,7 @@ pub fn error_interpretation(input: &str) {
 
     for node in const_ast.nodes.iter() {
         if node.is_test() && node.is_only_true_equations() {
-            assert!(false);
+            panic!()
         }
     }
 }
@@ -306,7 +306,7 @@ tel
         );
     }
     #[test]
-    fn swith_ok() {
+    fn switch_ok() {
         ok_interpretation(
             "
 node switch(x, y : int) returns (a, b : int);
@@ -319,8 +319,8 @@ tel
 node test() returns (z: bool);
 let
     lhs = ([2, 4, 6, 8], [1, 2, 3, 4]);
-    rhs = id([1, 2, 3, 4], [2, 4, 6, 8]);
-    b = lhs == rhs;
+    rhs = switch([1, 2, 3, 4], [2, 4, 6, 8]);
+    z = lhs == rhs;
 tel
 ",
         );
