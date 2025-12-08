@@ -238,11 +238,11 @@ impl CheckerInfo {
             } => {
                 let mut t = self.get_type_equation(node, rhs)?;
                 if t.is_initialized() {
-                    (&mut t).uninitialized();
+                    t.uninitialized();
                     Some(t)
                 } else {
                     self.push_diagnostic(Diagnostic {
-                                message: format!("Using pre operator on a not initialized value. This cannot be recovered with any other operator."),
+                                message: "Using pre operator on a not initialized value. This cannot be recovered with any other operator.".to_string(),
                                 severity: Some(DiagnosticSeverity::ERROR),
                                 range: span_op.to_range(),
                                 ..Default::default()
@@ -584,15 +584,12 @@ impl CheckerInfo {
         for node in x.nodes.iter() {
             self.check_node(node);
             for (var, _) in node.let_bindings.iter() {
-                match self.local_types.get(var) {
-                    Some(Some(t)) => {
-                        self.push_hint(
-                            var.position_end(),
-                            format!(" : {t}"),
-                            Some(InlayHintKind::TYPE),
-                        );
-                    }
-                    Some(None) | None => {}
+                if let Some(Some(t)) = self.local_types.get(var) {
+                    self.push_hint(
+                        var.position_end(),
+                        format!(" : {t}"),
+                        Some(InlayHintKind::TYPE),
+                    );
                 }
             }
         }

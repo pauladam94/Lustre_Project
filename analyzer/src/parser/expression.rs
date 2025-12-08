@@ -101,7 +101,7 @@ impl Expr {
                         None => return None,
                     }
                 }
-                return Some(Value::Array(const_exprs));
+                Some(Value::Array(const_exprs))
             }
             Expr::Array(exprs) => {
                 let mut const_exprs = vec![];
@@ -111,7 +111,7 @@ impl Expr {
                         None => return None,
                     }
                 }
-                return Some(Value::Array(const_exprs));
+                Some(Value::Array(const_exprs))
             }
             Expr::Lit(lit) => Some(lit.clone()),
         }
@@ -195,9 +195,9 @@ impl Expr {
             Expr::If { cond, yes, no } => {
                 write!(f, "if")?;
                 cond.fmt_parent(f, parent_op)?;
-                write!(f, "then (\n")?;
+                writeln!(f, "then (")?;
                 yes.fmt_parent(f, parent_op)?;
-                write!(f, ") else (\n")?;
+                writeln!(f, ") else (")?;
                 no.fmt_parent(f, parent_op)?;
                 write!(f, "\n)")
             }

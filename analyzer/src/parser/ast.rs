@@ -41,10 +41,7 @@ impl Ast {
         Self { nodes: vec![] }
     }
     pub fn hint_last_node_reduced_test(&self) -> Option<(Position, String)> {
-        match self.nodes.last() {
-            Some(node) => Some(node.hint_reduced_test()),
-            None => None,
-        }
+        self.nodes.last().map(|node| node.hint_reduced_test())
     }
     pub fn last_nodes_is_test(&self) -> bool {
         match self.nodes.last() {
@@ -59,9 +56,8 @@ impl Ast {
         }
     }
     pub fn push_expr(&mut self, name: Span, expr: Expr) {
-        match self.nodes.last_mut() {
-            Some(node) => node.push_expr(name, expr),
-            None => {}
+        if let Some(node) = self.nodes.last_mut() {
+            node.push_expr(name, expr)
         }
     }
     pub fn text_edit(&self) -> Vec<TextEdit> {

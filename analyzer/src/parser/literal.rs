@@ -12,7 +12,6 @@ use nom::bytes::complete::tag;
 use nom::character::complete::alpha1;
 use nom::character::complete::alphanumeric1;
 use nom::character::complete::digit1;
-use nom::character::complete::multispace0;
 use nom::combinator::recognize;
 use nom::combinator::value;
 use nom::multi::many0;

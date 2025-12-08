@@ -87,7 +87,7 @@ impl Span {
         Self {
             column: 0,
             line: 0,
-            fragment: format!("()"),
+            fragment: "()".to_string(),
         }
     }
     pub fn change_text(&mut self, fragment: String) {

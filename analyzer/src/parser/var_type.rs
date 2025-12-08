@@ -36,7 +36,7 @@ impl VarType {
     }
     pub fn merge(self, mut rhs: Self) -> Option<Self> {
         if self == rhs {
-            return Some(rhs);
+            Some(rhs)
         } else if self.inner == rhs.inner {
             if self.initialized == rhs.initialized {
                 Some(rhs)

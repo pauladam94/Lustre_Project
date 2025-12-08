@@ -96,10 +96,8 @@ impl CompiledExpr {
                 use crate::parser::binop::BinOp::*;
                 use Value::*;
                 let lhs = values[*lhs].clone()?;
-                if op == &BinOp::Arrow {
-                    if instant == &0 {
-                        return Some(lhs);
-                    }
+                if op == &BinOp::Arrow && instant == &0 {
+                    return Some(lhs);
                 }
                 let rhs = values[*rhs].clone()?;
                 match (lhs, rhs) {

@@ -42,7 +42,7 @@ pub(crate) struct Node {
 impl std::fmt::Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if let Some((_, t)) = &self.tag {
-            write!(f, "#[{t}]\n")?;
+            writeln!(f, "#[{t}]")?;
         }
         write!(f, "node {}(", self.name)?;
         if self.inputs.len() != 1 || self.inputs[0].1.inner != InnerVarType::Unit {
@@ -76,9 +76,9 @@ impl Node {
         (
             self.tag.as_ref().unwrap().0.position_end(),
             if self.is_reduced_test() {
-                format!(" ✅ OK")
+                " ✅ OK".to_string()
             } else {
-                format!(" ❌ ERROR")
+                " ❌ ERROR".to_string()
             },
         )
     }
@@ -86,7 +86,7 @@ impl Node {
         self.is_test() && self.is_only_true_equations()
     }
     pub fn is_test(&self) -> bool {
-        return self.tag.is_some() && self.outputs.len() == 1;
+        self.tag.is_some() && self.outputs.len() == 1
     }
     pub fn is_only_true_equations(&self) -> bool {
         self.let_bindings.len() == 1 // it has one equation

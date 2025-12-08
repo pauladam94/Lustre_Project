@@ -9,6 +9,12 @@ pub struct Compiler {
     pub ast: CompiledNode,
 }
 
+impl Default for Compiler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Compiler {
     pub fn new() -> Self {
         Self {
@@ -48,7 +54,7 @@ impl Compiler {
             .ast
             .push_back_expr_memo(CompiledExpr::Get { src: set }, format!("get {}", expr));
 
-        return get;
+        get
     }
     fn compile_expr(
         &mut self,

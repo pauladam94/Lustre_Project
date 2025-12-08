@@ -110,19 +110,19 @@ impl PropagaterConst {
                     },
                     (Some(l), None) => Expr::BinOp {
                         lhs: Box::new(Expr::Lit(l)),
-                        op: op.clone(),
+                        op: *op,
                         span_op: span_op.clone(),
                         rhs: Box::new(rhs),
                     },
                     (None, Some(r)) => Expr::BinOp {
                         lhs: Box::new(lhs),
-                        op: op.clone(),
+                        op: *op,
                         span_op: span_op.clone(),
                         rhs: Box::new(Expr::Lit(r)),
                     },
                     (Some(l), Some(r)) => Expr::BinOp {
                         lhs: Box::new(Expr::Lit(l)),
-                        op: op.clone(),
+                        op: *op,
                         span_op: span_op.clone(),
                         rhs: Box::new(Expr::Lit(r)),
                     },
@@ -130,7 +130,7 @@ impl PropagaterConst {
                 }
             }
             Expr::UnaryOp { op, span_op, rhs } => Expr::UnaryOp {
-                op: op.clone(),
+                op: *op,
                 span_op: span_op.clone(),
                 rhs: Box::new(self.const_expr(ast, node, rhs)),
             },
@@ -157,7 +157,7 @@ impl PropagaterConst {
                 }
                 eprint!("Consts args of func call of '{name}' are :");
                 const_args.iter().for_each(|x| eprint!("{x}, "));
-                eprintln!("");
+                eprintln!();
                 if !args_are_const
                     || (const_args.len() == 1 && const_args[0] == Expr::Lit(Value::Unit))
                 {
@@ -222,10 +222,7 @@ impl PropagaterConst {
                             }
                         }
                         Expr::Lit(Value::tuple_from_vec(
-                            array_outputs
-                                .into_iter()
-                                .map(|vec| Value::Array(vec))
-                                .collect(),
+                            array_outputs.into_iter().map(Value::Array).collect(),
                         ))
                     }
                 }

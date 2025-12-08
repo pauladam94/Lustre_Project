@@ -54,6 +54,12 @@ impl std::fmt::Display for CompiledNode {
     }
 }
 
+impl Default for CompiledNode {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CompiledNode {
     pub fn new() -> Self {
         Self {
@@ -163,10 +169,7 @@ impl CompiledNode {
                     *rhs = new_index[*rhs].unwrap();
                 }
                 Array(items) | Tuple(items) => {
-                    items
-                        .iter_mut()
-                        .enumerate()
-                        .for_each(|(_, i)| *i = new_index[*i].unwrap());
+                    items.iter_mut().for_each(|i| *i = new_index[*i].unwrap());
                 }
                 _ => {}
             }
@@ -179,7 +182,7 @@ impl CompiledNode {
                 "\t{pos} -> {}",
                 match index {
                     Some(i) => format!("{i}"),
-                    None => format!("None"),
+                    None => "None".to_string(),
                 }
             );
         });
@@ -296,7 +299,7 @@ impl CompiledNode {
                 inputs: inputs_index.clone(),
                 outputs: outputs_index.clone(),
                 values: values.clone(),
-                instant: instant.clone(),
+                instant: *instant,
             }
         );
         let mut res = vec![];
@@ -305,6 +308,6 @@ impl CompiledNode {
         }
 
         self.instant += 1;
-        return res;
+        res
     }
 }
