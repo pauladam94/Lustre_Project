@@ -74,6 +74,18 @@ impl std::fmt::Display for VarType {
         }
     }
 }
+
+impl std::cmp::PartialEq<InnerVarType> for VarType {
+    fn eq(&self, other: &InnerVarType) -> bool {
+        &self.inner == other
+    }
+}
+impl std::cmp::PartialEq<VarType> for InnerVarType {
+    fn eq(&self, other: &VarType) -> bool {
+        self == &other.inner
+    }
+}
+
 impl std::fmt::Display for InnerVarType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {

@@ -21,6 +21,9 @@ impl Compiler {
             ast: CompiledNode::new(),
         }
     }
+    pub fn schedule(&self) -> CompiledNode {
+        self.ast.schedule()
+    }
 }
 
 impl Ast {
@@ -48,13 +51,10 @@ impl Compiler {
 
         let set = self
             .ast
-            .push_back_expr_memo(CompiledExpr::Set { src: expr_index }, format!("set {expr}"));
+            .push_expr(CompiledExpr::Set { src: expr_index }, format!("set {expr}"));
 
-        let get = self
-            .ast
-            .push_back_expr_memo(CompiledExpr::Get { src: set }, format!("get {}", expr));
-
-        get
+        self.ast
+            .push_expr(CompiledExpr::Get { src: set }, format!("get {}", expr))
     }
     fn compile_expr(
         &mut self,
@@ -75,7 +75,7 @@ impl Compiler {
             } => {
                 let ilhs = self.compile_expr(ast, node, inputs, outputs, vars, lhs);
                 let irhs = self.compile_pre(ast, node, inputs, outputs, vars, rhs);
-                self.ast.push_back_expr_memo(
+                self.ast.push_expr(
                     CompiledExpr::BinOp {
                         lhs: ilhs,
                         op: BinOp::Arrow,
@@ -92,7 +92,7 @@ impl Compiler {
             } => {
                 let ilhs = self.compile_expr(ast, node, inputs, outputs, vars, lhs);
                 let irhs = self.compile_expr(ast, node, inputs, outputs, vars, rhs);
-                self.ast.push_back_expr_memo(
+                self.ast.push_expr(
                     CompiledExpr::BinOp {
                         lhs: ilhs,
                         rhs: irhs,
@@ -113,7 +113,7 @@ impl Compiler {
             } => {
                 let irhs = self.compile_expr(ast, node, inputs, outputs, vars, rhs);
                 self.ast
-                    .push_back_expr_memo(CompiledExpr::UnaryOp { op: *op, rhs: irhs }, info)
+                    .push_expr(CompiledExpr::UnaryOp { op: *op, rhs: irhs }, info)
             }
             Expr::Array(exprs) | Expr::Tuple(exprs) => {
                 let iexprs: Vec<ExprIndex> = exprs
@@ -122,11 +122,10 @@ impl Compiler {
                     .collect();
 
                 if let Expr::Array(_) = expr {
-                    self.ast
-                        .push_back_expr_memo(CompiledExpr::Array(iexprs), info)
+                    self.ast.push_expr(CompiledExpr::Array(iexprs), info)
                 } else {
                     self.ast
-                        .push_back_expr_memo(CompiledExpr::tuple_from_vec(iexprs), info)
+                        .push_expr(CompiledExpr::tuple_from_vec(iexprs), info)
                 }
             }
             Expr::FCall { name, args } => {
@@ -145,10 +144,9 @@ impl Compiler {
                         match outputs_node[..] {
                             [i] => return i,
                             _ => {
-                                return self.ast.push_back_expr_memo(
-                                    CompiledExpr::tuple_from_vec(outputs_node),
-                                    info,
-                                );
+                                return self
+                                    .ast
+                                    .push_expr(CompiledExpr::tuple_from_vec(outputs_node), info);
                             }
                         }
                     }
@@ -165,9 +163,7 @@ impl Compiler {
                 }
                 self.compile_var(ast, node, inputs, outputs, vars, var)
             }
-            Expr::Lit(value) => self
-                .ast
-                .push_back_expr_memo(CompiledExpr::Lit(value.clone()), info),
+            Expr::Lit(value) => self.ast.push_expr(CompiledExpr::Lit(value.clone()), info),
             Expr::If {
                 cond: _,
                 yes: _,
@@ -203,15 +199,13 @@ impl Compiler {
         let mut inputs_index = vec![];
         for (input, _) in node.inputs.iter() {
             inputs_index.push(
-                self.ast.push_back_expr_memo(
-                    CompiledExpr::Input,
-                    format!("{} : {}", "IN".green(), input),
-                ),
+                self.ast
+                    .push_expr(CompiledExpr::Input, format!("{} : {}", "IN".green(), input)),
             );
         }
         let mut outputs_index = vec![];
         for (output, _) in node.outputs.iter() {
-            outputs_index.push(self.ast.push_back_expr_memo(
+            outputs_index.push(self.ast.push_expr(
                 CompiledExpr::Output,
                 format!("{} : {}", "OUT".blue(), output),
             ));

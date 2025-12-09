@@ -1,4 +1,7 @@
-use crate::parser::expression::Precedence;
+use crate::{
+    interpreter::instant::Instant,
+    parser::{expression::Precedence, literal::Value},
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
 pub enum UnaryOp {
@@ -7,6 +10,39 @@ pub enum UnaryOp {
     Not,
 }
 
+impl UnaryOp {
+    pub fn apply(&self, rhs: &Value, instant: Option<Instant>) -> Option<Value> {
+        use UnaryOp::*;
+        use Value::*;
+        match (self, rhs) {
+            (Inv, Int(i)) => Some(Int(-i)),
+            (Inv, Float(i)) => Some(Float(-i)),
+
+            (Pre, Int(i)) => match instant {
+                Some(Instant::NonInitial) => Some(Int(*i)),
+                _ => None,
+            },
+            (Pre, Float(f)) => match instant {
+                Some(Instant::NonInitial) => Some(Float(*f)),
+                _ => None,
+            },
+
+            (Not, Bool(b)) => Some(Bool(!b)),
+            (_, Tuple(l)) | (_, Array(l)) => {
+                let mut res = vec![];
+                for v in l.iter() {
+                    res.push(self.apply(v, instant)?);
+                }
+                Some(if let Tuple(_) = rhs {
+                    Tuple(res)
+                } else {
+                    Array(res)
+                })
+            }
+            _ => None,
+        }
+    }
+}
 impl Precedence for UnaryOp {
     fn precedence(&self) -> usize {
         match self {

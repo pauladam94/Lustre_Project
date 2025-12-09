@@ -1,5 +1,6 @@
 use crate::{
     checker::types::{FunctionCallType, FunctionType},
+    interpreter::instant::Instant,
     parser::{
         ast::Ast,
         expression::Expr,
@@ -69,67 +70,30 @@ impl PropagaterConst {
                 let lhs = self.const_expr(ast, node, lhs);
                 let rhs = self.const_expr(ast, node, rhs);
 
-                use crate::parser::binop::BinOp::*;
-                match (lhs.get_value(), rhs.get_value()) {
-                    (Some(Value::Integer(lv)), Some(Value::Integer(rv))) => match op {
-                        Add => Expr::Lit(Value::Integer(lv + rv)),
-                        Sub => Expr::Lit(Value::Integer(lv - rv)),
-                        Mult => Expr::Lit(Value::Integer(lv * rv)),
-                        Div => Expr::Lit(Value::Integer(lv / rv)),
-                        Eq => Expr::Lit(Value::Bool(lv == rv)),
-                        Neq => Expr::Lit(Value::Bool(lv != rv)),
-                        _ => expr.clone(),
-                    },
-                    (Some(Value::Float(lv)), Some(Value::Float(rv))) => match op {
-                        Add => Expr::Lit(Value::Float(lv + rv)),
-                        Sub => Expr::Lit(Value::Float(lv - rv)),
-                        Mult => Expr::Lit(Value::Float(lv * rv)),
-                        Div => Expr::Lit(Value::Float(lv / rv)),
-                        Eq => Expr::Lit(Value::Bool(lv == rv)),
-                        Neq => Expr::Lit(Value::Bool(lv != rv)),
-                        _ => expr.clone(),
-                    },
-                    (Some(Value::Bool(lv)), Some(Value::Bool(rv))) => match op {
-                        Eq => Expr::Lit(Value::Bool(lv == rv)),
-                        Neq => Expr::Lit(Value::Bool(lv != rv)),
-                        _ => expr.clone(),
-                    },
-                    (Some(Value::Array(l)), Some(Value::Array(r)))
-                    | (Some(Value::Tuple(l)), Some(Value::Tuple(r))) => match op {
-                        Eq => {
-                            for (lv, rv) in l.iter().zip(r.iter()) {
-                                if lv != rv {
-                                    return Expr::Lit(Value::Bool(false));
-                                }
-                            }
-                            Expr::Lit(Value::Bool(true))
-                        }
-                        Neq => todo!(),
-                        Or => todo!(),
-                        And => todo!(),
-                        _ => expr.clone(),
-                    },
-                    (Some(l), None) => Expr::BinOp {
-                        lhs: Box::new(Expr::Lit(l)),
-                        op: *op,
-                        span_op: span_op.clone(),
-                        rhs: Box::new(rhs),
-                    },
-                    (None, Some(r)) => Expr::BinOp {
-                        lhs: Box::new(lhs),
-                        op: *op,
-                        span_op: span_op.clone(),
-                        rhs: Box::new(Expr::Lit(r)),
-                    },
-                    (Some(l), Some(r)) => Expr::BinOp {
-                        lhs: Box::new(Expr::Lit(l)),
-                        op: *op,
-                        span_op: span_op.clone(),
-                        rhs: Box::new(Expr::Lit(r)),
-                    },
-                    (_, _) => expr.clone(),
+                let fallback = |lhs, rhs| Expr::BinOp {
+                    lhs: Box::new(lhs),
+                    op: op.clone(),
+                    span_op: span_op.clone(),
+                    rhs: Box::new(rhs),
+                };
+
+                let lv = match lhs.get_value() {
+                    Some(v) => v,
+                    None => return fallback(lhs, rhs),
+                };
+                let rv = match rhs.get_value() {
+                    Some(v) => v,
+                    None => return fallback(lhs, rhs),
+                };
+
+                match op.apply(&lv, &rv, None) {
+                    Some(v) => return Expr::Lit(v),
+                    None => {}
                 }
+
+                fallback(lhs, rhs)
             }
+            // todo apply unary op in constant propagation
             Expr::UnaryOp { op, span_op, rhs } => Expr::UnaryOp {
                 op: *op,
                 span_op: span_op.clone(),

@@ -1,26 +1,13 @@
-use crate::parser::array::array;
-use crate::parser::binop::BinOp;
-use crate::parser::func_call::func_call;
-use crate::parser::literal::Value;
-use crate::parser::literal::identifier;
-use crate::parser::literal::literal;
-use crate::parser::span::Ident;
-use crate::parser::span::LSpan;
-use crate::parser::span::Span;
-use crate::parser::tuple::tuple;
-use crate::parser::unary_op::UnaryOp;
-use crate::parser::white_space::ws;
-use nom::IResult;
-use nom::branch::alt;
-use nom::bytes::complete::tag;
-use nom::combinator::fail;
-use nom::combinator::map;
-use nom::sequence::delimited;
-use nom_language::precedence::Assoc;
-use nom_language::precedence::Operation;
-use nom_language::precedence::binary_op;
-use nom_language::precedence::precedence;
-use nom_language::precedence::unary_op;
+use crate::parser::{
+    array::array, binop::BinOp, func_call::func_call, literal::Value, literal::identifier,
+    literal::literal, span::Ident, span::LSpan, span::Span, tuple::tuple, unary_op::UnaryOp,
+    white_space::ws,
+};
+use nom::{
+    IResult, branch::alt, bytes::complete::tag, combinator::fail, combinator::map,
+    sequence::delimited,
+};
+use nom_language::precedence::{Assoc, Operation, binary_op, precedence, unary_op};
 
 pub(crate) trait Precedence {
     fn precedence(&self) -> usize;
@@ -57,42 +44,6 @@ pub enum Expr {
 impl Expr {
     pub fn get_value(&self) -> Option<Value> {
         match self {
-            Expr::If { cond, yes, no } => match cond.as_ref() {
-                Expr::Lit(Value::Bool(true)) => yes.get_value(),
-                Expr::Lit(Value::Bool(false)) => no.get_value(),
-                _ => None,
-            },
-            Expr::BinOp { .. } | Expr::FCall { .. } | Expr::Variable(_) => None,
-            Expr::UnaryOp { op, rhs, .. } => {
-                let rv = rhs.get_value()?;
-                match op {
-                    UnaryOp::Inv => match rv {
-                        Value::Integer(i) => Some(Value::Integer(-i)),
-                        Value::Float(f) => Some(Value::Float(-f)),
-                        _ => todo!(),
-                    },
-                    UnaryOp::Pre => None,
-                    UnaryOp::Not => match rv {
-                        Value::Unit => todo!(),
-                        Value::Integer(_) => todo!(),
-                        Value::Float(_) => todo!(),
-                        Value::Bool(b) => Some(Value::Bool(!b)),
-                        Value::Tuple(_) => None, // TODO the not operation
-                        Value::Array(values) => Some(Value::Array(
-                            values
-                                .into_iter()
-                                .map(|v| {
-                                    if let Value::Bool(b) = v {
-                                        Value::Bool(!b)
-                                    } else {
-                                        unreachable!()
-                                    }
-                                })
-                                .collect(),
-                        )),
-                    },
-                }
-            }
             Expr::Tuple(exprs) | Expr::Array(exprs) => {
                 let mut const_exprs = vec![];
                 for expr in exprs.iter() {
@@ -108,6 +59,7 @@ impl Expr {
                 }
             }
             Expr::Lit(lit) => Some(lit.clone()),
+            _ => None,
         }
     }
 

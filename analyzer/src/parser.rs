@@ -1,11 +1,9 @@
-#[macro_use]
-
 // Parsers
-pub(crate) mod expression;
 pub(crate) mod args;
 pub(crate) mod array;
 pub(crate) mod binop;
 pub(crate) mod equation;
+pub(crate) mod expression;
 pub(crate) mod ftag;
 pub(crate) mod func_call;
 pub(crate) mod literal;

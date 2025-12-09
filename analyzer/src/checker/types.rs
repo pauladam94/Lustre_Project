@@ -323,11 +323,20 @@ impl CheckerInfo {
                 self.get_type_function(node, name, args)
             }
 
-            Expr::If {
-                cond: _,
-                yes: _,
-                no: _,
-            } => todo!(), // TODO
+            Expr::If { cond, yes, no } => {
+                let tcond = self.get_type_expression(node, cond)?;
+                let tyes = self.get_type_expression(node, yes)?;
+                let tno = self.get_type_expression(node, no)?;
+
+                if tcond == InnerVarType::Bool && tyes.equal_without_pre(&tno) {
+                    Some(VarType {
+                        initialized: tcond.initialized && tyes.initialized && tno.initialized,
+                        inner: tyes.inner,
+                    })
+                } else {
+                    None
+                }
+            }
         }
     }
 

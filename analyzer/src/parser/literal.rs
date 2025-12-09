@@ -29,7 +29,7 @@ use nom::{
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Unit,
-    Integer(i64),
+    Int(i64),
     Float(f64),
     Bool(bool),
     Tuple(Vec<Value>),
@@ -61,7 +61,7 @@ impl Value {
             // TODO do a function on InnerVarType directly !
             inner: match self {
                 Value::Unit => InnerVarType::Unit,
-                Value::Integer(_) => InnerVarType::Int,
+                Value::Int(_) => InnerVarType::Int,
                 Value::Float(_) => InnerVarType::Float,
                 Value::Bool(_) => InnerVarType::Bool,
                 Value::Tuple(v) => {
@@ -94,7 +94,7 @@ impl std::fmt::Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Value::Unit => write!(f, "()"),
-            Value::Integer(i) => write!(f, "{i}"),
+            Value::Int(i) => write!(f, "{i}"),
             Value::Float(fl) => write!(f, "{fl}"),
             Value::Bool(b) => write!(f, "{b}"),
             Value::Tuple(vec) => {
@@ -180,7 +180,7 @@ pub(crate) fn literal(input: LSpan) -> IResult<LSpan, Value> {
     alt((
         unit.map(|_| Value::Unit),
         float.map(Value::Float),
-        integer.map(Value::Integer),
+        integer.map(Value::Int),
         bool_parse.map(Value::Bool),
     ))
     .parse(input)

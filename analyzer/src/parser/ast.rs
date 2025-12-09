@@ -49,12 +49,12 @@ impl Ast {
             None => false,
         }
     }
-    pub fn last_nodes_is_reduced_test(&self) -> bool {
-        match self.nodes.last() {
-            Some(node) => node.is_reduced_test(),
-            None => false,
-        }
-    }
+    // pub fn last_nodes_is_reduced_test(&self) -> bool {
+    //     match self.nodes.last() {
+    //         Some(node) => node.is_reduced_test(),
+    //         None => false,
+    //     }
+    // }
     pub fn push_expr(&mut self, name: Span, expr: Expr) {
         if let Some(node) = self.nodes.last_mut() {
             node.push_expr(name, expr)

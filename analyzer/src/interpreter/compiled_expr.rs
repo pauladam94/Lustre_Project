@@ -1,5 +1,5 @@
 use crate::{
-    interpreter::expr_index::ExprIndex,
+    interpreter::{expr_index::ExprIndex, instant::Instant},
     parser::{binop::BinOp, literal::Value, unary_op::UnaryOp},
 };
 
@@ -84,7 +84,7 @@ impl CompiledExpr {
         }
     }
 
-    pub fn compute_one_step(&self, values: &[Option<Value>], instant: &u64) -> Option<Value> {
+    pub fn compute_one_step(&self, values: &[Option<Value>], instant: &Instant) -> Option<Value> {
         match self {
             CompiledExpr::Input => None,
             CompiledExpr::Output => {
@@ -93,47 +93,16 @@ impl CompiledExpr {
             CompiledExpr::Set { src } => values[*src].clone(),
             CompiledExpr::Get { src } => values[*src].clone(),
             CompiledExpr::BinOp { lhs, op, rhs } => {
-                use crate::parser::binop::BinOp::*;
-                use Value::*;
-                let lhs = values[*lhs].clone()?;
-                if op == &BinOp::Arrow && instant == &0 {
-                    return Some(lhs);
+                let lv = values[*lhs].clone()?;
+                if op == &BinOp::Arrow && instant.is_init() {
+                    return Some(lv.clone());
                 }
-                let rhs = values[*rhs].clone()?;
-                match (lhs, rhs) {
-                    (Integer(lv), Integer(rv)) => match op {
-                        Add => Some(Integer(lv + rv)),
-                        Sub => Some(Integer(lv - rv)),
-                        Mult => Some(Integer(lv * rv)),
-                        Div => Some(Integer(lv / rv)),
-                        Eq => Some(Bool(lv == rv)),
-                        Neq => Some(Bool(lv != rv)),
-                        Arrow => Some(Integer(rv)),
-                        _ => None,
-                    },
-                    (Float(lv), Float(rv)) => match op {
-                        Add => Some(Float(lv + rv)),
-                        Sub => Some(Float(lv - rv)),
-                        Mult => Some(Float(lv * rv)),
-                        Div => Some(Float(lv / rv)),
-                        Eq => Some(Bool(lv == rv)),
-                        Neq => Some(Bool(lv != rv)),
-                        Arrow => Some(Float(rv)),
-                        _ => None,
-                    },
-                    (Bool(lv), Bool(rv)) => match op {
-                        Eq => Some(Bool(lv == rv)),
-                        Neq => Some(Bool(lv != rv)),
-                        Arrow => Some(Bool(rv)),
-                        Or => Some(Bool(lv || rv)),
-                        And => Some(Bool(lv && rv)),
-                        _ => None,
-                    },
-                    (_, _) => None,
-                }
+                let rv = values[*rhs].clone()?;
+                op.apply(&lv, &rv, Some(*instant))
             }
-            CompiledExpr::UnaryOp { op: _, rhs: _ } => {
-                todo!() // TODO
+            CompiledExpr::UnaryOp { op, rhs } => {
+                let rv = &values[*rhs].clone()?;
+                op.apply(rv, Some(*instant))
             }
             CompiledExpr::Array(_) => todo!(),
             CompiledExpr::Tuple(_) => todo!(),

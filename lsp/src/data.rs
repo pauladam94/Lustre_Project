@@ -24,13 +24,13 @@ pub struct Data {
     test_diag: Vec<Diagnostic>,
 }
 impl Data {
-    // Core function that update the data concerning
-    // a given text that is Lustre code
-    //
-    // All steps are :
-    // 1. parsing
-    // 2. type checking
-    // 3. propagate constant of ast
+    /// Core function that update the data concerning
+    /// a given text that is Lustre code
+    ///
+    /// All steps are :
+    /// 1. parsing
+    /// 2. type checking
+    /// 3. propagate constant of ast
     pub fn update_text(&mut self, s: String) {
         self.text = s;
         self.parse = lustre_parse(&self.text);

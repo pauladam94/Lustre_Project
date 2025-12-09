@@ -1,4 +1,7 @@
-use crate::parser::expression::Precedence;
+use crate::{
+    interpreter::instant::Instant,
+    parser::{expression::Precedence, literal::Value},
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
 pub enum BinOp {
@@ -12,6 +15,75 @@ pub enum BinOp {
     Neq,
     Or,
     And,
+}
+
+impl BinOp {
+    // Computing a binary operator on two values
+    //
+    // If instant is None we are not assuming any instant
+    //
+    // If instant is 0 or something else then we can deduce the value
+    // of temporal operator
+    //
+    // todo const generics on instant
+    pub fn apply(self, lhs: &Value, rhs: &Value, instant: Option<Instant>) -> Option<Value> {
+        use BinOp::*;
+        use Value::*;
+        // TODO finish this for instant not initial
+        match (self, lhs, rhs) {
+            // Singular Values
+            (Add, Int(l), Int(r)) => Some(Int(l + r)),
+            (Add, Float(l), Float(r)) => Some(Float(l + r)),
+
+            (Sub, Int(l), Int(r)) => Some(Int(l - r)),
+            (Sub, Float(l), Float(r)) => Some(Float(l - r)),
+
+            (Mult, Int(l), Int(r)) => Some(Int(l * r)),
+            (Mult, Float(l), Float(r)) => Some(Float(l * r)),
+
+            (Div, Int(l), Int(r)) => Some(Int(l / r)),
+            (Div, Float(l), Float(r)) => Some(Float(l / r)),
+
+            (Eq, Int(l), Int(r)) => Some(Bool(l == r)),
+            (Eq, Float(l), Float(r)) => Some(Bool(l == r)),
+
+            (Neq, Int(l), Int(r)) => Some(Bool(l != r)),
+            (Neq, Float(l), Float(r)) => Some(Bool(l != r)),
+
+            (Or, Bool(l), Bool(r)) => Some(Bool(*l || *r)),
+            (And, Bool(l), Bool(r)) => Some(Bool(*l && *r)),
+
+            (Arrow, lv, rv) => match instant {
+                Some(Instant::Initial) => Some(lv.clone()),
+                Some(Instant::NonInitial) => Some(rv.clone()),
+                None => None,
+            },
+
+            // Tuple && Arrays
+            (Eq | Neq, Tuple(l), Tuple(r)) | (Eq, Array(l), Array(r)) => {
+                let mut res = true;
+                for (lv, rv) in l.iter().zip(r.iter()) {
+                    if let Some(Value::Bool(b)) = self.apply(lv, rv, instant) {
+                        res = res && b
+                    }
+                }
+                Some(Bool(res))
+            }
+            (Add | Sub | Mult | Div | Or | And, Tuple(l), Tuple(r))
+            | (Add | Sub | Mult | Div | Or | And, Array(l), Array(r)) => {
+                let mut res = vec![];
+                for (lv, rv) in l.iter().zip(r.iter()) {
+                    res.push(self.apply(lv, rv, instant)?);
+                }
+                if let Tuple(_) = lhs {
+                    Some(Tuple(res))
+                } else {
+                    Some(Array(res))
+                }
+            }
+            _ => None,
+        }
+    }
 }
 
 impl Precedence for BinOp {

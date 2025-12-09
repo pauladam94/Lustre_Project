@@ -70,7 +70,7 @@ impl DoubleTogetherVisitor for ShallowEq {
 
     fn visit_literal(&mut self, x1: &Value, x2: &Value) {
         match (x1, x2) {
-            (Value::Integer(i1), Value::Integer(i2)) => {
+            (Value::Int(i1), Value::Int(i2)) => {
                 self.and(i1 == i2);
             }
             (Value::Float(f1), Value::Float(f2)) => {
