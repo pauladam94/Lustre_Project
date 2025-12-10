@@ -1,4 +1,4 @@
 [workspace]
 resolver = "3"
-members = ["analyzer", "lsp", "gui"]
+members = ["analyzer", "lsp", "gui", "cli"]
 

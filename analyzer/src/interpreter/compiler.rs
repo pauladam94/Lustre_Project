@@ -164,11 +164,13 @@ impl Compiler {
                 self.compile_var(ast, node, inputs, outputs, vars, var)
             }
             Expr::Lit(value) => self.ast.push_expr(CompiledExpr::Lit(value.clone()), info),
-            Expr::If {
-                cond: _,
-                yes: _,
-                no: _,
-            } => todo!(),
+            Expr::If { cond, yes, no } => {
+                let cond = self.compile_expr(ast, node, inputs, outputs, vars, cond);
+                let yes = self.compile_expr(ast, node, inputs, outputs, vars, yes);
+                let no = self.compile_expr(ast, node, inputs, outputs, vars, no);
+
+                self.ast.push_expr(CompiledExpr::If { cond, yes, no }, info)
+            }
         }
     }
 

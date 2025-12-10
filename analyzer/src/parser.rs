@@ -12,6 +12,7 @@ pub(crate) mod tuple;
 pub(crate) mod unary_op;
 pub(crate) mod var_type;
 pub(crate) mod white_space;
+pub(crate) mod if_then_else;
 
 pub mod span;
 pub mod test;

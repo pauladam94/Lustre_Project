@@ -2,8 +2,8 @@
 
 Project around the Lustre programming language aiming at providing :
 - [x] a parser
-- [x] a type checker
-- [x] an interpreter
+- [~] a type checker
+- [~] an interpreter
 - [x] a lsp implementation for IDE features for the language
 - [ ] a graphical interface to build apps with Lustre in slint
 
@@ -12,7 +12,7 @@ Project around the Lustre programming language aiming at providing :
 - [ ] clock support
 - [ ] support for merge 
 - [ ] support for reset 
-- [ ] support for 'if then else'
+- [x] support for 'if then else'
 
 ### Parser
 - [ ] fix error parsing of 1 -> 1 -> a + b
@@ -24,7 +24,6 @@ Project around the Lustre programming language aiming at providing :
 - [ ] loss less parser
 - [ ] one more test for loss less parser : input ==nws parse | input | display_debug
 - [x] parse arguments variants (x, y : int) instead of (x : int, y: int)
-
 
 ### Type checker
 - [ ] checking clocks 
@@ -43,10 +42,10 @@ Project around the Lustre programming language aiming at providing :
 - [x] interpreter in the lsp
 - [ ] Untyped Value for faster interpretation
 
+### Compiler
+- [ ] compile a CompileNode to a Rust program that can be compiled
+
 ### Graphical interface
 - [ ] basic grid support with slint
 - [ ] compilation of a program to a working grid application
 - [ ] modifiying the code of a block modify the whole code
-
-
-

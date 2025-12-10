@@ -22,6 +22,11 @@ pub enum CompiledExpr {
         op: UnaryOp,
         rhs: ExprIndex,
     },
+    If {
+        cond: ExprIndex,
+        yes: ExprIndex,
+        no: ExprIndex,
+    },
     Array(Vec<ExprIndex>), // TODO remove this
     Tuple(Vec<ExprIndex>), // TODO remove this
     Variable(ExprIndex),
@@ -57,19 +62,14 @@ impl std::fmt::Display for CompiledExpr {
                 }
                 write!(f, "]")
             }
-            CompiledExpr::Variable(expr_index) => {
-                write!(f, "{expr_index}")
-            }
-            CompiledExpr::Lit(value) => {
-                write!(f, "val {value}")
-            }
+            CompiledExpr::Variable(expr_index) => write!(f, "{expr_index}"),
+            CompiledExpr::Lit(value) => write!(f, "val {value}"),
             CompiledExpr::Input => write!(f, "IN"),
             CompiledExpr::Output => write!(f, "OUT"),
-            CompiledExpr::Set { src } => {
-                write!(f, " = {src}")
-            }
-            CompiledExpr::Get { src } => {
-                write!(f, " = {src}")
+            CompiledExpr::Set { src } => write!(f, " = {src}"),
+            CompiledExpr::Get { src } => write!(f, " = {src}"),
+            CompiledExpr::If { cond, yes, no } => {
+                write!(f, "if {} then {} else {}", cond, yes, no)
             }
         }
     }
@@ -108,6 +108,17 @@ impl CompiledExpr {
             CompiledExpr::Tuple(_) => todo!(),
             CompiledExpr::Variable(expr_index) => values[*expr_index].clone(),
             CompiledExpr::Lit(value) => Some(value.clone()),
+            CompiledExpr::If { cond, yes, no } => {
+                let cv = values[*cond].clone()?;
+                let yes = values[*yes].clone()?;
+                let no = values[*no].clone()?;
+
+                match cv {
+                    Value::Bool(true) => Some(yes),
+                    Value::Bool(false) => Some(no),
+                    _ => None,
+                }
+            }
         }
     }
 }

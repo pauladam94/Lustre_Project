@@ -29,7 +29,6 @@ impl BinOp {
     pub fn apply(self, lhs: &Value, rhs: &Value, instant: Option<Instant>) -> Option<Value> {
         use BinOp::*;
         use Value::*;
-        // TODO finish this for instant not initial
         match (self, lhs, rhs) {
             // Singular Values
             (Add, Int(l), Int(r)) => Some(Int(l + r)),
@@ -45,23 +44,26 @@ impl BinOp {
             (Div, Float(l), Float(r)) => Some(Float(l / r)),
 
             (Eq, Int(l), Int(r)) => Some(Bool(l == r)),
+            (Eq, Bool(l), Bool(r)) => Some(Bool(l == r)),
             (Eq, Float(l), Float(r)) => Some(Bool(l == r)),
 
             (Neq, Int(l), Int(r)) => Some(Bool(l != r)),
+            (Neq, Bool(l), Bool(r)) => Some(Bool(l != r)),
             (Neq, Float(l), Float(r)) => Some(Bool(l != r)),
 
             (Or, Bool(l), Bool(r)) => Some(Bool(*l || *r)),
             (And, Bool(l), Bool(r)) => Some(Bool(*l && *r)),
 
-            (Arrow, lv, rv) => match instant {
-                Some(Instant::Initial) => Some(lv.clone()),
-                Some(Instant::NonInitial) => Some(rv.clone()),
+            (Fby, _, _) => None, // todo maybe put unreachable!(),
+            (Arrow, _, _) => match instant {
+                Some(Instant::Initial) => Some(lhs.clone()),
+                Some(Instant::NonInitial) => Some(rhs.clone()),
                 None => None,
             },
 
             // Tuple && Arrays
             (Eq | Neq, Tuple(l), Tuple(r)) | (Eq, Array(l), Array(r)) => {
-                let mut res = true;
+                let mut res = true; // op.apply(Value::Bool(true), Value::Bool(true));
                 for (lv, rv) in l.iter().zip(r.iter()) {
                     if let Some(Value::Bool(b)) = self.apply(lv, rv, instant) {
                         res = res && b

@@ -20,10 +20,16 @@ impl std::fmt::Display for CompiledNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Instant = {}", self.instant)?;
         writeln!(f, "loop {{")?;
+        let width = self
+            .exprs
+            .iter()
+            .map(|e| format!("{e}").len())
+            .max()
+            .unwrap();
         for ((i, expr), value) in self.exprs.iter().enumerate().zip(self.values.iter()) {
             write!(
                 f,
-                "\t{i:<3} -   {:<10} >> {} // {:10}",
+                "\t{i:<3} -   {:<width$} >> {} // {:10}",
                 format!("{expr}"),
                 match value {
                     Some(v) => &format!("{v}"),

@@ -1,6 +1,5 @@
 use crate::{
     checker::types::{FunctionCallType, FunctionType},
-    interpreter::instant::Instant,
     parser::{
         ast::Ast,
         expression::Expr,
@@ -44,7 +43,7 @@ impl PropagaterConst {
 
     fn reduced_test_hint(&mut self) {
         if self.ast.last_nodes_is_test()
-            && let Some((position, label)) = self.ast.hint_last_node_reduced_test()
+            && let Some((position, label)) = self.ast.hint_last_node_reduced()
         {
             self.push_hint(position, label)
         }
@@ -88,17 +87,26 @@ impl PropagaterConst {
 
                 match op.apply(&lv, &rv, None) {
                     Some(v) => return Expr::Lit(v),
-                    None => {}
+                    None => return fallback(lhs, rhs),
                 }
-
-                fallback(lhs, rhs)
             }
-            // todo apply unary op in constant propagation
-            Expr::UnaryOp { op, span_op, rhs } => Expr::UnaryOp {
-                op: *op,
-                span_op: span_op.clone(),
-                rhs: Box::new(self.const_expr(ast, node, rhs)),
-            },
+            Expr::UnaryOp { op, span_op, rhs } => {
+                let rhs = self.const_expr(ast, node, rhs);
+
+                let fallback = |rhs| Expr::UnaryOp {
+                    op: *op,
+                    span_op: span_op.clone(),
+                    rhs: Box::new(rhs),
+                };
+                let rv = match rhs.get_value() {
+                    Some(v) => v,
+                    None => return fallback(rhs),
+                };
+                match op.apply(&rv, None) {
+                    Some(v) => return Expr::Lit(v),
+                    None => return fallback(rhs),
+                }
+            }
             Expr::Tuple(exprs) => Expr::Tuple(
                 exprs
                     .iter()
@@ -180,9 +188,9 @@ impl PropagaterConst {
                                 input.push(x[instant].clone())
                             }
 
-                            eprint!("At instant {instant}, input is : [");
-                            input.iter().for_each(|x| eprint!("{x}, "));
-                            eprintln!("]");
+                            // eprint!("At instant {instant}, input is : [");
+                            // input.iter().for_each(|x| eprint!("{x}, "));
+                            // eprintln!("]");
 
                             for (i, res) in compile_ast.step(input).into_iter().enumerate() {
                                 if instant == 0 {

@@ -413,16 +413,67 @@ tel
     ",
         )
     }
+
+    #[test]
+    fn always_true_ok() {
+        ok_interpretation(
+            "
+            node f() returns (z : bool);
+            let
+                z = true;
+            tel
+            #[test]
+            node test() returns (b : bool);
+            let
+                b = lhs == rhs;
+                lhs = [true, true, true];
+                rhs = f([(), (), ()]);
+            tel
+            ",
+        );
+    }
+    #[test]
+    fn always_false_ok() {
+        error_interpretation(
+            "
+            node f() returns (z : bool);
+            let
+                z = false;
+            tel
+            #[test]
+            node test() returns (b : bool);
+            let
+                b = lhs == rhs;
+                lhs = [true, true, true];
+                rhs = f([(), (), ()]);
+            tel
+
+            ",
+        );
+    }
+
+    #[test]
+    fn has_been_true_if_ok() {
+        ok_interpretation(
+            "
+node has_been_true(a : bool) returns (z: bool);
+let
+    z = (false fby z) or a;
+tel
+node hbt_if(i : bool) returns (o: bool);
+let
+    o = false fby if i then true else o;
+tel
+
+#[test]
+node test() returns (z: bool);
+let
+    tab = [false, true, true, false, false];
+    rhs = hbt_if(tab);
+    lhs = has_been_true(tab);
+    z = lhs == rhs;
+tel
+            ",
+        );
+    }
 }
-
-/*
-
-let f x y z = ...
-
-f    1      2      3 =>  (((f 1)      2)    3)
-f : int -> int -> int =>    (int -> (int -> (int)))
-
-
-
-
-*/

@@ -24,18 +24,18 @@ impl CompiledNode {
             }
             values[pos] = expr.compute_one_step(values, instant);
         }
-        eprintln!(
-            "{} >>\n{}\n",
-            "COMPILE".blue(),
-            Self {
-                exprs: vec.clone(),
-                infos: info.clone(),
-                inputs: inputs_index.clone(),
-                outputs: outputs_index.clone(),
-                values: values.clone(),
-                instant: *instant,
-            }
-        );
+        // eprintln!(
+        //     "{} >>\n{}\n",
+        //     "COMPILE".blue(),
+        //     Self {
+        //         exprs: vec.clone(),
+        //         infos: info.clone(),
+        //         inputs: inputs_index.clone(),
+        //         outputs: outputs_index.clone(),
+        //         values: values.clone(),
+        //         instant: *instant,
+        //     }
+        // );
         let mut res = vec![];
         for output in outputs_index.iter() {
             res.push(values[*output].clone().unwrap());

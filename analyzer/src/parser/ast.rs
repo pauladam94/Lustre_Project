@@ -40,8 +40,8 @@ impl Ast {
     pub fn new() -> Self {
         Self { nodes: vec![] }
     }
-    pub fn hint_last_node_reduced_test(&self) -> Option<(Position, String)> {
-        self.nodes.last().map(|node| node.hint_reduced_test())
+    pub fn hint_last_node_reduced(&self) -> Option<(Position, String)> {
+        self.nodes.last().map(|node| node.hint_reduced())
     }
     pub fn last_nodes_is_test(&self) -> bool {
         match self.nodes.last() {
@@ -49,12 +49,6 @@ impl Ast {
             None => false,
         }
     }
-    // pub fn last_nodes_is_reduced_test(&self) -> bool {
-    //     match self.nodes.last() {
-    //         Some(node) => node.is_reduced_test(),
-    //         None => false,
-    //     }
-    // }
     pub fn push_expr(&mut self, name: Span, expr: Expr) {
         if let Some(node) = self.nodes.last_mut() {
             node.push_expr(name, expr)

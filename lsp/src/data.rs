@@ -42,6 +42,9 @@ impl Data {
             }
             self.check = check;
             self.type_hint = type_hint;
+        } else {
+            self.check = vec![];
+            self.type_hint = vec![];
         }
     }
     pub fn formatting(&self) -> Result<Option<Vec<TextEdit>>> {

@@ -1,5 +1,6 @@
 use crate::interpreter::{
-    compiled_ast::CompiledNode, compiled_expr::CompiledExpr, expr_index::ExprIndex, instant::Instant,
+    compiled_ast::CompiledNode, compiled_expr::CompiledExpr, expr_index::ExprIndex,
+    instant::Instant,
 };
 use colored::Colorize;
 
@@ -47,25 +48,24 @@ impl CompiledNode {
         let mut exprs = vec![];
         let mut infos = vec![];
 
-        // mut infos;
-        eprintln!("marked = ");
+        // eprintln!("marked = ");
         marked.iter().enumerate().for_each(|(index, b)| {
             if *b {
-                eprintln!("\t{index} is marked");
+                // eprintln!("\t{index} is marked");
                 new_index[index] = Some(self.move_into(&mut exprs, &mut infos, index));
             }
         });
         let mut pos = 0;
 
-        eprintln!("Debug {}", "ALGO".purple());
+        // eprintln!("Debug {}", "ALGO".purple());
         while pos < exprs.len() {
-            eprintln!(">> Algo at iteration {pos}");
-            exprs.iter().enumerate().for_each(|(i, e)| {
-                eprintln!(
-                    "\t{}{i}   -   {e}",
-                    if i == pos { " --> " } else { "     " }
-                );
-            });
+            // eprintln!(">> Algo at iteration {pos}");
+            // exprs.iter().enumerate().for_each(|(i, e)| {
+            //     eprintln!(
+            //         "\t{}{i}   -   {e}",
+            //         if i == pos { " --> " } else { "     " }
+            //     );
+            // });
             match exprs[pos].clone() {
                 Set { src: index }
                 | Get { src: index }
@@ -109,16 +109,16 @@ impl CompiledNode {
             pos += 1;
         }
 
-        eprintln!("new_index = ");
-        new_index.iter().enumerate().for_each(|(pos, index)| {
-            eprintln!(
-                "\t{pos} -> {}",
-                match index {
-                    Some(i) => format!("{i}"),
-                    None => "None".to_string(),
-                }
-            );
-        });
+        // eprintln!("new_index = ");
+        // new_index.iter().enumerate().for_each(|(pos, index)| {
+        //     eprintln!(
+        //         "\t{pos} -> {}",
+        //         match index {
+        //             Some(i) => format!("{i}"),
+        //             None => "None".to_string(),
+        //         }
+        //     );
+        // });
 
         let values = vec![None; exprs.len()];
         let outputs = self

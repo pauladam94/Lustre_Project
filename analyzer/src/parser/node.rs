@@ -72,18 +72,15 @@ impl std::fmt::Display for Node {
 }
 
 impl Node {
-    pub fn hint_reduced_test(&self) -> (Position, String) {
+    pub fn hint_reduced(&self) -> (Position, String) {
         (
             self.tag.as_ref().unwrap().0.position_end(),
-            if self.is_reduced_test() {
+            if self.is_only_true_equations() {
                 " ✅ OK".to_string()
             } else {
                 " ❌ ERROR".to_string()
             },
         )
-    }
-    pub fn is_reduced_test(&self) -> bool {
-        self.is_test() && self.is_only_true_equations()
     }
     pub fn is_test(&self) -> bool {
         self.tag.is_some() && self.outputs.len() == 1
@@ -113,6 +110,7 @@ impl Node {
         } = self;
 
         Self {
+            // todo use better patter for this
             span_node: span_node.clone(),
             span_returns: span_returns.clone(),
             span_let: span_let.clone(),

@@ -1,6 +1,12 @@
 use crate::parser::{
-    array::array, binop::BinOp, func_call::func_call, literal::Value, literal::identifier,
-    literal::literal, span::Ident, span::LSpan, span::Span, tuple::tuple, unary_op::UnaryOp,
+    array::array,
+    binop::BinOp,
+    func_call::func_call,
+    if_then_else::ifthenelse,
+    literal::{Value, identifier, literal},
+    span::{Ident, LSpan, Span},
+    tuple::tuple,
+    unary_op::UnaryOp,
     white_space::ws,
 };
 use nom::{
@@ -139,13 +145,13 @@ impl Expr {
                 }
             }
             Expr::If { cond, yes, no } => {
-                write!(f, "if")?;
+                write!(f, "if (")?;
                 cond.fmt_parent(f, parent_op)?;
-                writeln!(f, "then (")?;
+                write!(f, ") then (")?;
                 yes.fmt_parent(f, parent_op)?;
-                writeln!(f, ") else (")?;
+                write!(f, ") else (")?;
                 no.fmt_parent(f, parent_op)?;
-                write!(f, "\n)")
+                write!(f, ")")
             }
         }
     }
@@ -183,6 +189,11 @@ pub(crate) fn expression(input: LSpan) -> IResult<LSpan, Expr> {
             delimited(ws(tag("(")), ws(expression), ws(tag(")"))),
             map(array, Expr::Array),
             map(tuple, Expr::Tuple),
+            map(ifthenelse, |(cond, yes, no)| Expr::If {
+                cond: Box::new(cond),
+                yes: Box::new(yes),
+                no: Box::new(no),
+            }),
             map(func_call, |(name, args)| Expr::FCall { name, args }),
             map(ws(literal), Expr::Lit),
             map(ws(identifier), Expr::Variable),
