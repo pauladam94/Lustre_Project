@@ -39,11 +39,12 @@ impl Data {
             if check.is_empty() {
                 let (_, test_hint) = ast.propagate_const();
                 self.test_hint = test_hint;
-            }
+            } 
             self.check = check;
             self.type_hint = type_hint;
         } else {
             self.check = vec![];
+            self.test_hint = vec![];
             self.type_hint = vec![];
         }
     }
@@ -75,10 +76,10 @@ impl Data {
             _ => Ok(None),
         }
     }
-    pub fn document_hightlight(&self) -> Result<Option<Vec<DocumentHighlight>>> {
+    pub fn document_hightlight(&self, pos: Position) -> Result<Option<Vec<DocumentHighlight>>> {
         match &self.parse {
             Err(_) => Ok(None),
-            Ok(ast) => Ok(Some(ast.document_hightlight())),
+            Ok(ast) => Ok(Some(ast.document_hightlight(pos))),
         }
     }
     pub fn diagnostic(&self) -> Result<DocumentDiagnosticReportResult> {

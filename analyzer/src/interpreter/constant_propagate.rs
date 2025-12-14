@@ -270,7 +270,7 @@ impl PropagaterConst {
                     self.seen_equations.insert(name.clone(), val);
                     self.ast.push_expr(name.clone(), new_expr);
 
-                    return;
+                    // return;
                 }
             }
         }

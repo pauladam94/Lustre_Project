@@ -76,6 +76,24 @@ impl std::fmt::Display for CompiledExpr {
 }
 
 impl CompiledExpr {
+    pub fn get_neighbours(&self) -> Vec<ExprIndex> {
+        match self {
+            CompiledExpr::Lit(_) | CompiledExpr::Input | CompiledExpr::Output => vec![],
+            CompiledExpr::Variable(i)
+            | CompiledExpr::UnaryOp { rhs: i, .. }
+            | CompiledExpr::Set { src: i }
+            | CompiledExpr::Get { src: i } => {
+                vec![*i]
+            }
+            CompiledExpr::BinOp {
+                lhs: i1, rhs: i2, ..
+            }
+            | CompiledExpr::If {
+                yes: i1, no: i2, ..
+            } => vec![*i1, *i2],
+            CompiledExpr::Array(items) | CompiledExpr::Tuple(items) => items.clone(),
+        }
+    }
     pub fn tuple_from_vec(vec: Vec<ExprIndex>) -> Self {
         match &vec[..] {
             [] => Self::Lit(Value::Unit),
@@ -90,8 +108,7 @@ impl CompiledExpr {
             CompiledExpr::Output => {
                 unreachable!()
             }
-            CompiledExpr::Set { src } => values[*src].clone(),
-            CompiledExpr::Get { src } => values[*src].clone(),
+            CompiledExpr::Set { src } | CompiledExpr::Get { src } => values[*src].clone(),
             CompiledExpr::BinOp { lhs, op, rhs } => {
                 let lv = values[*lhs].clone()?;
                 if op == &BinOp::Arrow && instant.is_init() {

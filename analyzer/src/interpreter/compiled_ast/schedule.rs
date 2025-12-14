@@ -18,78 +18,59 @@ impl CompiledNode {
             self.infos[index].clone(),
         )
     }
+    pub fn bfs(&self, start: usize, done: &mut [bool], pile: &mut Vec<usize>) {
+        if done[start] {
+            return;
+        }
+        done[start] = true;
+        for neighbour in self.exprs[start].get_neighbours() {
+            if let CompiledExpr::Set { .. } = self.exprs[neighbour] {
+                continue;
+            }
+            self.bfs(neighbour, done, pile);
+        }
+
+        pile.push(start);
+    }
     pub fn schedule(&self) -> Self {
+        eprintln!("{}", ">> SCHEDULE".blue());
         use CompiledExpr::*;
         let number_expression = self.len();
 
-        let mut marked = vec![true; number_expression];
-
-        // marked the node with the link to them
-        // the node with marked[node] == true
-        // are the top level node
-        for expr in self.exprs.iter() {
-            match expr {
-                Get { src: index } | UnaryOp { rhs: index, .. } | Variable(index) => {
-                    marked[*index] = false;
-                }
-                BinOp { lhs, op: _, rhs } => {
-                    marked[*lhs] = false;
-                    marked[*rhs] = false;
-                }
-                Array(items) | Tuple(items) => {
-                    items.iter().for_each(|index| marked[*index] = true);
-                }
-                _ => {}
-            }
-        }
-
-        // done store the index in self.exprs that have been treated
         let mut new_index: Vec<Option<ExprIndex>> = vec![None; self.len()];
         let mut exprs = vec![];
         let mut infos = vec![];
 
-        // eprintln!("marked = ");
-        marked.iter().enumerate().for_each(|(index, b)| {
-            if *b {
-                // eprintln!("\t{index} is marked");
-                new_index[index] = Some(self.move_into(&mut exprs, &mut infos, index));
-            }
-        });
-        let mut pos = 0;
+        let mut done = vec![false; number_expression];
+        let mut pile: Vec<ExprIndex> = vec![];
+        // We do a BFS on the CompiledNode
+        for index in 0..self.exprs.len() {
+            self.bfs(index, &mut done, &mut pile);
+        }
 
-        // eprintln!("Debug {}", "ALGO".purple());
-        while pos < exprs.len() {
-            // eprintln!(">> Algo at iteration {pos}");
-            // exprs.iter().enumerate().for_each(|(i, e)| {
-            //     eprintln!(
-            //         "\t{}{i}   -   {e}",
-            //         if i == pos { " --> " } else { "     " }
-            //     );
-            // });
-            match exprs[pos].clone() {
-                Set { src: index }
-                | Get { src: index }
-                | UnaryOp { rhs: index, .. }
-                | Variable(index) => {
-                    if new_index[index].is_none() {
-                        new_index[index] = Some(self.move_into(&mut exprs, &mut infos, index));
-                    }
-                }
-                BinOp { lhs, op: _, rhs } => {
-                    if new_index[lhs].is_none() {
-                        new_index[lhs] = Some(self.move_into(&mut exprs, &mut infos, lhs));
-                    }
-                    if new_index[rhs].is_none() {
-                        new_index[rhs] = Some(self.move_into(&mut exprs, &mut infos, rhs));
-                    }
-                }
-                Array(items) | Tuple(items) => items.into_iter().for_each(|e| {
-                    if new_index[e].is_none() {
-                        new_index[e] = Some(self.move_into(&mut exprs, &mut infos, e));
-                    }
-                }),
-                _ => {}
+        // Rearrange the expression according to the `pile` vector
+
+        for (new, past) in pile.iter().enumerate() {
+            new_index[*past] = Some(new);
+        }
+
+        eprintln!("> PILE : ");
+        for (i, index) in pile.iter().enumerate() {
+            eprintln!("\t{i} - {index}");
+        }
+        eprintln!("> New Index : ");
+        for (i, index) in new_index.iter().enumerate() {
+            if let Some(index) = index {
+                eprintln!("\t{i} - {index}");
             }
+        }
+
+        for past in pile.iter() {
+            self.move_into(&mut exprs, &mut infos, *past);
+        }
+
+        // Modify the
+        for pos in 0..exprs.len() {
             match &mut exprs[pos] {
                 Set { src: index }
                 | Get { src: index }
@@ -106,19 +87,7 @@ impl CompiledNode {
                 }
                 _ => {}
             }
-            pos += 1;
         }
-
-        // eprintln!("new_index = ");
-        // new_index.iter().enumerate().for_each(|(pos, index)| {
-        //     eprintln!(
-        //         "\t{pos} -> {}",
-        //         match index {
-        //             Some(i) => format!("{i}"),
-        //             None => "None".to_string(),
-        //         }
-        //     );
-        // });
 
         let values = vec![None; exprs.len()];
         let outputs = self

@@ -1,6 +1,7 @@
-use crate::{diagnostic::ToRange, token_type::TokenType};
+use crate::ast::{to_range::ToRange, token_type::TokenType};
 use lsp_types::{Position, Range, SemanticToken};
 use nom_locate::LocatedSpan;
+use std::cmp::Ordering;
 
 pub type LSpan<'a> = LocatedSpan<&'a str>;
 
@@ -29,6 +30,22 @@ impl PartialEq for Span {
         self.fragment == other.fragment
     }
 }
+impl PartialEq<Position> for Span {
+    fn eq(&self, other: &Position) -> bool {
+        other.line == self.line && other.character as usize == self.column
+    }
+}
+impl PartialOrd<Position> for Span {
+    fn partial_cmp(&self, other: &Position) -> Option<Ordering> {
+        use Ordering::*;
+        Some(match self.line.cmp(&other.line) {
+            Less => Less,
+            Greater => Greater,
+            Equal => self.column.cmp(&(other.character as usize)),
+        })
+    }
+}
+
 pub trait PositionEnd {
     fn position_end(&self) -> Position;
 }

@@ -9,7 +9,9 @@ Project around the Lustre programming language aiming at providing :
 
 ## TODO
 
-- [ ] clock support
+- [ ] 0 -> pre x (mauvaise valeur de x)
+- [ ] tableaux égaux pas être egaux
+- [ ] affichages des hints de valeur de variables qui restent- [ ] clock support
 - [ ] support for merge 
 - [ ] support for reset 
 - [x] support for 'if then else'
@@ -17,6 +19,7 @@ Project around the Lustre programming language aiming at providing :
 ### Parser
 - [ ] fix error parsing of 1 -> 1 -> a + b
 - [ ] parse comments
+- [ ] to a lexing phase first (maybe in a lazy way)
 - [ ] parse tuple on the left of expression
 - [x] parse tuple in expression
 - [ ] parse vars
@@ -27,6 +30,7 @@ Project around the Lustre programming language aiming at providing :
 
 ### Type checker
 - [ ] checking clocks 
+- [ ] test cyclic definition inside a node itself
 - [ ] test non cyclic definitions of function between each other
 - [x] type check functions call
 - [x] good type check of 'pre' not initialized type
@@ -34,8 +38,8 @@ Project around the Lustre programming language aiming at providing :
 ### LSP
 - [x] better semantic tokens
 - [x] inlay hints of type
-- [ ] test inlay hint if the test pass or not
-- [ ] constant propagate draw for output of function 
+- [x] test inlay hint if the test pass or not
+- [x] constant propagate draw for output of function 
 
 ### Interpreter
 - [ ] hightlight by the lsp

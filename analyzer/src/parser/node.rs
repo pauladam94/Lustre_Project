@@ -76,9 +76,9 @@ impl Node {
         (
             self.tag.as_ref().unwrap().0.position_end(),
             if self.is_only_true_equations() {
-                " ✅ OK".to_string()
+                " ✅".to_string()
             } else {
-                " ❌ ERROR".to_string()
+                " ❌".to_string()
             },
         )
     }

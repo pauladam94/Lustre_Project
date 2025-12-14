@@ -1,6 +1,5 @@
 use crate::{
-    diagnostic::ToRange,
-    parser::{
+    ast::to_range::ToRange, parser::{
         ast::Ast,
         binop::BinOp,
         expression::Expr,
@@ -9,7 +8,7 @@ use crate::{
         span::{Ident, PositionEnd, Span},
         unary_op::UnaryOp,
         var_type::{InnerVarType, VarType},
-    },
+    }
 };
 use indexmap::IndexMap;
 use lsp_types::{

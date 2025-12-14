@@ -47,14 +47,17 @@ impl Compiler {
         vars: &mut HashMap<Span, ExprIndex>,
         expr: &Expr,
     ) -> ExprIndex {
-        let expr_index = self.compile_expr(ast, node, inputs, outputs, vars, expr);
+        let iexpr = self.compile_expr(ast, node, inputs, outputs, vars, expr);
 
-        let set = self
-            .ast
-            .push_expr(CompiledExpr::Set { src: expr_index }, format!("set {expr}"));
+        // let set = self
+        //     .ast
+        //     .push_expr(CompiledExpr::Get { src: iexpr }, format!("get {expr}"));
+
+        // self.ast
+        //     .push_expr(CompiledExpr::Get { src: set }, format!("set {expr}"))
 
         self.ast
-            .push_expr(CompiledExpr::Get { src: set }, format!("get {}", expr))
+            .push_expr(CompiledExpr::Set { src: iexpr }, format!("set {expr}"))
     }
     fn compile_expr(
         &mut self,

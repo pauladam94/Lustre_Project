@@ -8,7 +8,7 @@ use lsp_types::{
     SemanticTokensResult, SemanticTokensServerCapabilities, ServerCapabilities,
     TextDocumentSyncCapability, TextDocumentSyncKind, TextEdit, WorkDoneProgressOptions,
 };
-use lustre_analyzer::token_type::TokenType;
+use lustre_analyzer::ast::token_type::TokenType;
 use lustrels::data::Data;
 use tower_lsp_server::jsonrpc::Result;
 use tower_lsp_server::{Client, LanguageServer, LspService, Server};
@@ -93,9 +93,10 @@ impl LanguageServer for Backend {
 
     async fn document_highlight(
         &self,
-        _: DocumentHighlightParams,
+        params: DocumentHighlightParams,
     ) -> Result<Option<Vec<DocumentHighlight>>> {
-        self.data.read().await.document_hightlight()
+        let pos = params.text_document_position_params.position;
+        self.data.read().await.document_hightlight(pos)
     }
 
     async fn diagnostic(

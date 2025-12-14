@@ -1,7 +1,7 @@
+use crate::ast::highlight::DocumentHighlightVisitor;
+use crate::ast::semantic_token::SemanticTokenVisitor;
 use crate::parser::expression::Expr;
-use crate::parser::hightlight::DocumentHighlightVisitor;
 use crate::parser::node::{Node, node};
-use crate::parser::semantic_token::SemanticTokenVisitor;
 use crate::parser::span::{LSpan, Span};
 use crate::parser::visitor::Visitor;
 use crate::parser::white_space::ws;
@@ -74,8 +74,8 @@ impl Ast {
             .collect()
     }
 
-    pub fn document_hightlight(&self) -> Vec<DocumentHighlight> {
-        let mut visitor = DocumentHighlightVisitor::new();
+    pub fn document_hightlight(&self, pos: Position) -> Vec<DocumentHighlight> {
+        let mut visitor = DocumentHighlightVisitor::new(self, pos);
         visitor.walk(self);
         visitor.hightlights()
     }

@@ -1,4 +1,4 @@
-use crate::diagnostic::ToRange;
+use crate::ast::to_range::ToRange;
 use crate::parser::span::LSpan;
 use crate::parser::span::Span;
 use crate::parser::var_type::InnerVarType;
