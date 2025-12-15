@@ -87,10 +87,8 @@ impl CompiledExpr {
             }
             CompiledExpr::BinOp {
                 lhs: i1, rhs: i2, ..
-            }
-            | CompiledExpr::If {
-                yes: i1, no: i2, ..
             } => vec![*i1, *i2],
+            CompiledExpr::If { cond, yes, no } => vec![*cond, *yes, *no],
             CompiledExpr::Array(items) | CompiledExpr::Tuple(items) => items.clone(),
         }
     }

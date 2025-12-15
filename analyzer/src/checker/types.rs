@@ -1,5 +1,7 @@
 use crate::{
-    ast::to_range::ToRange, parser::{
+    ast::to_range::ToRange,
+    checker::infer_types::InferLen,
+    parser::{
         ast::Ast,
         binop::BinOp,
         expression::Expr,
@@ -8,7 +10,7 @@ use crate::{
         span::{Ident, PositionEnd, Span},
         unary_op::UnaryOp,
         var_type::{InnerVarType, VarType},
-    }
+    },
 };
 use indexmap::IndexMap;
 use lsp_types::{
@@ -178,19 +180,24 @@ impl CheckerInfo {
             } => {
                 let lt = self.get_type_expression(node, lhs)?;
                 let rt = self.get_type_expression(node, rhs)?;
-                if lt == rt {
-                    Some(VarType {
+                let message = format!(
+                    "Got type '{}' on the left and '{}' on the right\n but expected to have the same type.",
+                    lt, rt
+                );
+                match lt.merge(rt) {
+                    Some(_) => Some(VarType {
                         initialized: true,
                         inner: InnerVarType::Bool,
-                    })
-                } else {
-                    self.push_diagnostic(Diagnostic {
-                                message: format!("Got type '{}' on the left and '{}' on the right\n but expected to have the same type.", lt, rt),
-                                severity: Some(DiagnosticSeverity::ERROR),
-                                range: span_op.to_range(),
-                                ..Default::default()
-                            });
-                    None
+                    }),
+                    None => {
+                        self.push_diagnostic(Diagnostic {
+                            message,
+                            severity: Some(DiagnosticSeverity::ERROR),
+                            range: span_op.to_range(),
+                            ..Default::default()
+                        });
+                        None
+                    }
                 }
             }
             Expr::BinOp {
@@ -295,7 +302,10 @@ impl CheckerInfo {
                 }
                 Some(VarType {
                     initialized,
-                    inner: InnerVarType::Array(Box::new(t0?.inner)),
+                    inner: InnerVarType::Array {
+                        t: Box::new(t0?.inner),
+                        len: InferLen::Known(arr.len()),
+                    },
                 })
             }
             Expr::Tuple(arr) => {
@@ -339,6 +349,24 @@ impl CheckerInfo {
         }
     }
 
+    /// Get the type of a given function considering that its arguments
+    ///
+    /// Indeed the type of a function can be lifted.
+    ///
+    /// In lustre writing a node of type `int -> int` like this :
+    /// ```
+    /// node f(x: int) returns (z: int);
+    /// let
+    ///     z = x + x;
+    /// tel
+    /// ```
+    ///
+    /// Can be called those three ways :
+    /// - f(3) with 3 a constant int
+    ///   Here we consider the type of `f : int -> int`
+    /// - f(x) with x an int that is a flow of integers (same as previous case)
+    /// - f([2, 3, 4, x])
+    ///   Here we consider the type of `f : [int] -> [int]`
     fn get_type_function(&mut self, node: &Node, name: &Span, args: &Vec<Expr>) -> Option<VarType> {
         if name == &node.name {
             self.push_diagnostic(Diagnostic {
@@ -411,17 +439,17 @@ impl CheckerInfo {
                             FunctionCallType::Array => {
                                 if !t.equal_array_of(expected_type) {
                                     self.push_diagnostic(Diagnostic {
-            message: format!(
-                "{} arguments of function {} of type '{}' but expected ['{}']",
-                numeral_string(i),
-                name,
-                t,
-                expected_type
-            ),
-            severity: Some(DiagnosticSeverity::ERROR),
-            range: name.to_range(),
-            ..Default::default()
-        });
+                                        message: format!(
+                                            "{} arguments of function {} of type '{}' but expected ['{}']",
+                                            numeral_string(i),
+                                            name,
+                                            t,
+                                            expected_type
+                                        ),
+                                        severity: Some(DiagnosticSeverity::ERROR),
+                                        range: name.to_range(),
+                                        ..Default::default()
+                                    });
                                     return None;
                                 }
                             }
@@ -452,7 +480,10 @@ impl CheckerInfo {
                             .cloned()
                             .map(|t| VarType {
                                 initialized: true,
-                                inner: InnerVarType::Array(Box::new(t.inner)),
+                                inner: InnerVarType::Array {
+                                    t: Box::new(t.inner),
+                                    len: InferLen::Unknown,
+                                },
                             })
                             .collect(),
                     )),

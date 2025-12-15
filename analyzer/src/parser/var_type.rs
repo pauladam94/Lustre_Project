@@ -1,3 +1,4 @@
+use crate::checker::infer_types::InferLen;
 use crate::parser::span::LSpan;
 use crate::parser::white_space::ws;
 use nom::branch::alt;
@@ -15,7 +16,28 @@ pub enum InnerVarType {
     String,
     // Maybe this should be modified
     Tuple(Vec<InnerVarType>),
-    Array(Box<InnerVarType>),
+    Array { t: Box<InnerVarType>, len: InferLen },
+}
+
+impl InnerVarType {
+    pub fn merge(self, rhs: Self) -> Option<Self> {
+        use InnerVarType::*;
+        match (self, rhs) {
+            (lhs, rhs) if lhs == rhs => Some(rhs),
+            (Tuple(l1), Tuple(l2)) => {
+                let mut res = vec![];
+                for (t1, t2) in l1.into_iter().zip(l2.into_iter()) {
+                    res.push(t1.merge(t2)?)
+                }
+                Some(Tuple(res))
+            }
+            (Array { t: t1, len: len1 }, Array { t: t2, len: len2 }) if t1 == t2 => Some(Array {
+                t: t1,
+                len: len1.merge(len2)?,
+            }),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -34,26 +56,25 @@ impl VarType {
     pub fn is_not_initialized(&self) -> bool {
         !self.initialized
     }
-    pub fn merge(self, mut rhs: Self) -> Option<Self> {
-        if self == rhs {
-            Some(rhs)
-        } else if self.inner == rhs.inner {
-            if self.initialized == rhs.initialized {
-                Some(rhs)
-            } else {
-                rhs.uninitialized();
-                Some(rhs)
-            }
-        } else {
-            None
-        }
+    pub fn merge_initialization(left: bool, right: bool) -> bool {
+        left && right
     }
+    pub fn merge(self, rhs: Self) -> Option<Self> {
+        Some(Self {
+            inner: self.inner.merge(rhs.inner)?,
+            initialized: VarType::merge_initialization(self.initialized, rhs.initialized),
+        })
+    }
+
+    /// Check equatity of inner type without looking
+    /// if there are initialized the same way
     pub fn equal_without_pre(&self, rhs: &Self) -> bool {
         self.inner == rhs.inner
     }
+
     pub fn equal_array_of(&self, lhs: &Self) -> bool {
         match &self.inner {
-            InnerVarType::Array(inner_var_type) => **inner_var_type == lhs.inner,
+            InnerVarType::Array { t, len: _ } => **t == lhs.inner,
             _ => false,
         }
     }
@@ -96,7 +117,7 @@ impl std::fmt::Display for InnerVarType {
             InnerVarType::Char => write!(f, "char"),
             InnerVarType::String => write!(f, "string"),
             // InnerVarType::Pre(var_type) => write!(f, "pre {}", var_type),
-            InnerVarType::Array(var_type) => write!(f, "[{}]", var_type),
+            InnerVarType::Array { t, len } => write!(f, "[{t}]^{len}"),
             InnerVarType::Tuple(v) => {
                 write!(f, "(")?;
                 for (i, typ) in v.iter().enumerate() {

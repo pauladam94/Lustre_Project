@@ -9,7 +9,7 @@ Project around the Lustre programming language aiming at providing :
 
 ## TODO
 
-- [ ] 0 -> pre x (mauvaise valeur de x)
+- [x] 0 -> pre x (mauvaise valeur de x)
 - [ ] tableaux égaux pas être egaux
 - [ ] affichages des hints de valeur de variables qui restent- [ ] clock support
 - [ ] support for merge 

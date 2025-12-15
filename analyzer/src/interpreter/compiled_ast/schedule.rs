@@ -85,7 +85,12 @@ impl CompiledNode {
                 Array(items) | Tuple(items) => {
                     items.iter_mut().for_each(|i| *i = new_index[*i].unwrap());
                 }
-                _ => {}
+                If { cond, yes, no } => {
+                    *cond = new_index[*cond].unwrap();
+                    *yes = new_index[*yes].unwrap();
+                    *no = new_index[*no].unwrap();
+                }
+                Input | Output | Lit(_) => {}
             }
         }
 

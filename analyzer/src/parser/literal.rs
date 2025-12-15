@@ -1,29 +1,29 @@
 use crate::ast::to_range::ToRange;
+use crate::checker::infer_types::InferLen;
 use crate::parser::span::LSpan;
 use crate::parser::span::Span;
 use crate::parser::var_type::InnerVarType;
 use crate::parser::var_type::VarType;
 use crate::parser::white_space::ws;
 use lsp_types::Range;
-use nom::IResult;
-use nom::Parser;
-use nom::branch::alt;
-use nom::bytes::complete::tag;
-use nom::character::complete::alpha1;
-use nom::character::complete::alphanumeric1;
-use nom::character::complete::digit1;
-use nom::combinator::recognize;
-use nom::combinator::value;
-use nom::multi::many0;
-use nom::multi::many0_count;
-use nom::multi::many1;
-use nom::multi::many1_count;
-use nom::sequence::pair;
-use nom::sequence::terminated;
 use nom::{
+    IResult, Parser,
+    branch::alt,
+    bytes::complete::tag,
+    character::complete::alpha1,
+    character::complete::alphanumeric1,
+    character::complete::digit1,
     character::complete::{char, one_of},
     combinator::opt,
+    combinator::recognize,
+    combinator::value,
+    multi::many0,
+    multi::many0_count,
+    multi::many1,
+    multi::many1_count,
+    sequence::pair,
     sequence::preceded,
+    sequence::terminated,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -72,11 +72,18 @@ impl Value {
                     }
                 }
                 Value::Array(v) => {
+                    let len = InferLen::Known(v.len());
                     // Check more things maybe
                     if v.is_empty() {
-                        InnerVarType::Array(Box::new(InnerVarType::Unit))
+                        InnerVarType::Array {
+                            t: Box::new(InnerVarType::Unit),
+                            len,
+                        }
                     } else {
-                        InnerVarType::Array(Box::new(v[0].get_type().inner))
+                        InnerVarType::Array {
+                            t: Box::new(v[0].get_type().inner),
+                            len,
+                        }
                     }
                 }
             },
