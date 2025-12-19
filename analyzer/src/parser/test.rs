@@ -1,7 +1,6 @@
-use crate::parser::{
-    ast::ast,
-    double_visitor::{DoubleTogetherVisitor, ShallowEq},
-    span::LSpan,
+use crate::{
+    ast::double_visitor::{DoubleTogetherVisitor, ShallowEq},
+    parser::{ast::ast, span::LSpan},
 };
 use colored::Colorize;
 use nom::{Parser, error::ParseError};

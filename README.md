@@ -10,8 +10,10 @@ Project around the Lustre programming language aiming at providing :
 ## TODO
 
 - [x] 0 -> pre x (mauvaise valeur de x)
-- [ ] tableaux égaux pas être egaux
-- [ ] affichages des hints de valeur de variables qui restent- [ ] clock support
+- [x] tableaux égaux pas être egaux quand de taille différentes
+- [x] affichages des hints de valeur de variables qui restent
+- [ ] clock support
+- [ ] support for create array of specific length `[value] ^ n`
 - [ ] support for merge 
 - [ ] support for reset 
 - [x] support for 'if then else'
@@ -19,7 +21,7 @@ Project around the Lustre programming language aiming at providing :
 ### Parser
 - [ ] fix error parsing of 1 -> 1 -> a + b
 - [ ] parse comments
-- [ ] to a lexing phase first (maybe in a lazy way)
+- [ ] add a lexing phase first (maybe in a lazy way)
 - [ ] parse tuple on the left of expression
 - [x] parse tuple in expression
 - [ ] parse vars
@@ -31,7 +33,7 @@ Project around the Lustre programming language aiming at providing :
 ### Type checker
 - [ ] checking clocks 
 - [ ] test cyclic definition inside a node itself
-- [ ] test non cyclic definitions of function between each other
+- [x] test non cyclic definitions of function between each other
 - [x] type check functions call
 - [x] good type check of 'pre' not initialized type
 
@@ -40,11 +42,12 @@ Project around the Lustre programming language aiming at providing :
 - [x] inlay hints of type
 - [x] test inlay hint if the test pass or not
 - [x] constant propagate draw for output of function 
+- [ ] hightlight by the lsp
 
 ### Interpreter
-- [ ] hightlight by the lsp
 - [x] interpreter in the lsp
 - [ ] Untyped Value for faster interpretation
+- [ ] separate initial step and non initial step for faster interpretation
 
 ### Compiler
 - [ ] compile a CompileNode to a Rust program that can be compiled

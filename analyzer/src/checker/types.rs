@@ -1,6 +1,6 @@
 use crate::{
     ast::to_range::ToRange,
-    checker::infer_types::InferLen,
+    checker::{function_type::FunctionType, infer_types::InferLen},
     parser::{
         ast::Ast,
         binop::BinOp,
@@ -18,97 +18,9 @@ use lsp_types::{
 };
 use std::collections::HashMap;
 
-#[derive(Clone, Debug)]
-pub struct FunctionType {
-    inputs: IndexMap<Ident, VarType>,
-    outputs: IndexMap<Ident, VarType>,
-    vars: HashMap<Ident, VarType>,
-}
-
-#[derive(Debug)]
-pub enum FunctionCallType {
-    Simple,
-    Array,
-}
-impl FunctionType {
-    pub fn function_call_type(self, args: &Vec<Value>) -> Option<FunctionCallType> {
-        let mut res = None;
-        for (arg, (_, input_type)) in args.iter().zip(self.inputs.iter()) {
-            let arg_type = arg.get_type();
-            match res {
-                None => {
-                    if &arg_type == input_type {
-                        res = Some(FunctionCallType::Simple);
-                    } else if arg_type.equal_array_of(input_type) {
-                        res = Some(FunctionCallType::Array);
-                    } else {
-                        return None;
-                    }
-                }
-                Some(FunctionCallType::Simple) => {
-                    if &arg_type != input_type {
-                        return None;
-                    }
-                }
-                Some(FunctionCallType::Array) => {
-                    if !arg_type.equal_array_of(input_type) {
-                        return None;
-                    }
-                }
-            }
-        }
-        res
-    }
-    pub(crate) fn get_function_type(node: &Node) -> (Self, Vec<Diagnostic>) {
-        let mut diags = vec![];
-        let mut func = FunctionType {
-            inputs: IndexMap::new(),
-            outputs: IndexMap::new(),
-            vars: HashMap::new(),
-        };
-        for (name, t) in node.inputs.iter() {
-            if func.inputs.contains_key(name) {
-                diags.push(Diagnostic {
-                    message: "Input name already used.".to_string(),
-                    severity: Some(DiagnosticSeverity::ERROR),
-                    range: name.to_range(),
-                    ..Default::default()
-                })
-            } else {
-                func.inputs.insert(name.clone(), t.clone());
-            }
-        }
-        for (name, t) in node.outputs.iter() {
-            if func.outputs.contains_key(name) {
-                diags.push(Diagnostic {
-                    message: "Output name already used.".to_string(),
-                    severity: Some(DiagnosticSeverity::ERROR),
-                    range: name.to_range(),
-                    ..Default::default()
-                })
-            } else {
-                func.outputs.insert(name.clone(), t.clone());
-            }
-        }
-        for (name, t) in node.vars.iter() {
-            if func.vars.contains_key(name) {
-                diags.push(Diagnostic {
-                    message: "Var name already used.".to_string(),
-                    severity: Some(DiagnosticSeverity::ERROR),
-                    range: name.to_range(),
-                    ..Default::default()
-                })
-            } else {
-                func.vars.insert(name.clone(), t.clone());
-            }
-        }
-        (func, diags)
-    }
-}
-
 #[derive(Default)]
 struct CheckerInfo {
-    nodes_types: HashMap<Ident, FunctionType>,
+    nodes_types: IndexMap<Ident, FunctionType>,
     local_types: HashMap<Ident, Option<VarType>>,
     current_node: Ident,
     diagnostics: Vec<Diagnostic>,
@@ -232,11 +144,19 @@ impl CheckerInfo {
                     None
                 }
             }
+            Expr::BinOp {
+                lhs,
+                op: BinOp::Caret,
+                span_op,
+                rhs,
+            } => {
+                todo!()
+            }
             Expr::UnaryOp {
                 op: UnaryOp::Inv,
                 span_op: _,
                 rhs,
-            } => self.get_type_expression(node, rhs),
+            } => self.get_type_expression(node, rhs), // todo check type of rhs
             Expr::UnaryOp {
                 op: UnaryOp::Pre,
                 span_op,
@@ -377,17 +297,43 @@ impl CheckerInfo {
             });
             return None;
         }
-        // A function call can be lifted
+        // A function type call can be lifted
         // A function of type 'int -> int'
-        // can be lifted to a function of type '[int] -> [int]'
         enum FunctionCallType {
+            // Always begin as unknown
             Unknown,
+            // can be simply the type `flow int -> flow int`
             Simple,
+            // can be lifted to a function of type '[int] -> [int]'
             Array,
         }
         let mut call_type = FunctionCallType::Unknown;
         match self.nodes_types.get(name) {
             Some(ft) => {
+                // Cannot call function defined after the current node
+                let index_current_node = &self.nodes_types.get_index_of(&node.name).unwrap();
+                let index_called_node = &self.nodes_types.get_index_of(name).unwrap();
+                if index_called_node > index_current_node {
+                    self.push_diagnostic(Diagnostic {
+                        message: format!(
+                            "The function `{}` is defined after the place it is being called.",
+                            name
+                        ),
+                        severity: Some(DiagnosticSeverity::ERROR),
+                        range: name.to_range(),
+                        ..Default::default()
+                    });
+                    return None;
+                } else if index_called_node == index_current_node {
+                    self.push_diagnostic(Diagnostic {
+                        message: format!("Cannot call recursively the same node.",),
+                        severity: Some(DiagnosticSeverity::ERROR),
+                        range: name.to_range(),
+                        ..Default::default()
+                    });
+                    return None;
+                }
+
                 let ft = ft.clone();
                 if ft.inputs.len() != args.len() {
                     self.push_diagnostic(Diagnostic {

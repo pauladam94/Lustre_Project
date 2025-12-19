@@ -8,15 +8,24 @@
   "engines": {
     "vscode": "^1.105.0"
   },
-  "categories": ["Programming Languages"],
-  "activationEvents": ["onLanguage:lustre"],
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:lustre"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "languages": [
       {
         "id": "lustre",
-        "aliases": ["Lustre", "lustre"],
-        "extensions": [".lus"],
+        "aliases": [
+          "Lustre",
+          "lustre"
+        ],
+        "extensions": [
+          ".lus"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -35,8 +44,9 @@
     "package": "vsce package"
   },
   "devDependencies": {
+    "@vscode/wasm-wasi-lsp": "0.0.1",
     "@types/vscode": "^1.80.0",
-    "@types/node": "^20.0.0",
+    "@types/node": "^25.0.2",
     "typescript": "^5.3.0"
   },
   "dependencies": {

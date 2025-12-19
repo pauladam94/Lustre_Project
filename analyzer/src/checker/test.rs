@@ -188,4 +188,89 @@ let
 tel",
         );
     }
+
+    #[test]
+    fn cyclic_def_in_node() {
+        error_check(
+            "
+node f() returns (z: int);
+ let
+	z = z;
+tel
+
+#[test]
+node test() returns (z : bool);
+let
+	lhs = [0, 1, 2, 3, 4];
+	rhs = f([(), (), ()]);
+	z = lhs == rhs;
+tel",
+        )
+    }
+    #[test]
+    fn recursive_call_node() {
+        error_check(
+            "
+node f() returns (z: int);
+ let
+	z = f();
+tel
+
+#[test]
+node test() returns (z : bool);
+let
+	lhs = [0, 1, 2, 3, 4];
+	rhs = f([(), (), ()]);
+	z = lhs == rhs;
+tel",
+        )
+    }
+    #[test]
+    fn non_linear_call_node() {
+        error_check(
+            "
+node time() returns (z : int);
+let
+    z = 0 fby z + 1;
+tel
+
+#[test]
+node test() returns (z: bool);
+let
+    lhs = [1, 2, 3, 4, 5, 6];
+    rhs = time_call([(), (), (), (), (), ()]);
+    z = lhs == rhs;
+tel
+
+node time_call() returns (z : int);
+let
+    z = time();
+tel
+",
+        )
+    }
+    #[test]
+    fn eq_array_not_same_size() {
+        error_check(
+            "
+node time() returns (z : int);
+let
+    z = 0 fby z + 1;
+tel
+
+#[test]
+node test() returns (z: bool);
+let
+    lhs = [1, 2, 3];
+    rhs = time_call([(), (), (), (), (), ()]);
+    z = lhs == rhs;
+tel
+
+node time_call() returns (z : int);
+let
+    z = time();
+tel
+",
+        )
+    }
 }

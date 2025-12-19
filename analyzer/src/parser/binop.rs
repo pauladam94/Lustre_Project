@@ -15,6 +15,7 @@ pub enum BinOp {
     Neq,
     Or,
     And,
+    Caret,
 }
 
 impl BinOp {
@@ -101,6 +102,7 @@ impl Precedence for BinOp {
             BinOp::Mult => 2,
             BinOp::Fby => 2,
             BinOp::Div => 2,
+            BinOp::Caret => 2,
         }
     }
 }
@@ -118,6 +120,7 @@ impl std::fmt::Display for BinOp {
             BinOp::Neq => write!(f, "!="),
             BinOp::Or => write!(f, "or"),
             BinOp::And => write!(f, "and"),
+            BinOp::Caret => write!(f, "^"),
         }
     }
 }

@@ -8,7 +8,7 @@ use crate::parser::span::Ident;
 use crate::parser::span::LSpan;
 use crate::parser::span::PositionEnd;
 use crate::parser::span::Span;
-use crate::parser::span_eq::_SpanEq;
+// use crate::parser::span_eq::_SpanEq;
 use crate::parser::var_type::InnerVarType;
 use crate::parser::var_type::VarType;
 use crate::parser::white_space::ws;
@@ -124,31 +124,6 @@ impl Node {
             let_bindings: vec![],
             span_semicolon_equations: span_semicolon_equations.clone(),
         }
-    }
-}
-impl _SpanEq for Node {
-    fn span_eq(&self, other: Self) -> bool {
-        if self.tag != other.tag {
-            return false;
-        }
-        if self.name != other.name {
-            return false;
-        }
-        if self.inputs.len() != other.inputs.len() {
-            return false;
-        }
-        if self.outputs.len() != other.outputs.len() {
-            return false;
-        }
-        if self.let_bindings.len() != other.let_bindings.len() {
-            return false;
-        }
-        if self.vars.len() != other.vars.len() {
-            return false;
-        }
-        for _ in 0..self.inputs.len() {}
-
-        true
     }
 }
 

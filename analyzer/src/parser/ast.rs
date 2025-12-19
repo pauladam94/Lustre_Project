@@ -1,9 +1,9 @@
 use crate::ast::highlight::DocumentHighlightVisitor;
 use crate::ast::semantic_token::SemanticTokenVisitor;
+use crate::ast::visitor::Visitor;
 use crate::parser::expression::Expr;
 use crate::parser::node::{Node, node};
 use crate::parser::span::{LSpan, Span};
-use crate::parser::visitor::Visitor;
 use crate::parser::white_space::ws;
 use lsp_types::{DocumentHighlight, Position, Range, SemanticToken, TextEdit};
 use nom::IResult;

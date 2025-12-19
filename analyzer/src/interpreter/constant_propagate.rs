@@ -1,5 +1,5 @@
 use crate::{
-    checker::types::{FunctionCallType, FunctionType},
+    checker::function_type::{FunctionCallType, FunctionType},
     parser::{
         ast::Ast,
         expression::Expr,

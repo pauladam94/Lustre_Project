@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@vscode/wasm-wasi-lsp": "^0.1.0-pre.1"
+  }
+}

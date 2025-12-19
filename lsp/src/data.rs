@@ -39,13 +39,15 @@ impl Data {
             if check.is_empty() {
                 let (_, test_hint) = ast.propagate_const();
                 self.test_hint = test_hint;
-            } 
+            } else {
+                self.test_hint.clear();
+            }
             self.check = check;
             self.type_hint = type_hint;
         } else {
-            self.check = vec![];
-            self.test_hint = vec![];
-            self.type_hint = vec![];
+            self.check.clear();
+            self.test_hint.clear();
+            self.type_hint.clear();
         }
     }
     pub fn formatting(&self) -> Result<Option<Vec<TextEdit>>> {
