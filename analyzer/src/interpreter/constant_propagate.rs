@@ -8,7 +8,7 @@ use crate::{
         span::{PositionEnd, Span},
     },
 };
-use lsp_types::{InlayHint, InlayHintLabel, Position};
+use ls_types::{InlayHint, InlayHintLabel, Position};
 use std::collections::HashMap;
 
 #[derive(Default)]

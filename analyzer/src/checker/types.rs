@@ -13,7 +13,7 @@ use crate::{
     },
 };
 use indexmap::IndexMap;
-use lsp_types::{
+use ls_types::{
     Diagnostic, DiagnosticSeverity, InlayHint, InlayHintKind, InlayHintLabel, Position,
 };
 use std::collections::HashMap;
@@ -155,7 +155,10 @@ impl CheckerInfo {
 
                 if rt.inner != InnerVarType::Int {
                     self.push_diagnostic(Diagnostic {
-                        message: format!("Expected type `int` on the right of `{}` but go {}.", op, rt),
+                        message: format!(
+                            "Expected type `int` on the right of `{}` but go {}.",
+                            op, rt
+                        ),
                         severity: Some(DiagnosticSeverity::ERROR),
                         range: span_op.to_range(),
                         ..Default::default()

@@ -1,15 +1,15 @@
-use lsp_types::Diagnostic;
-use lsp_types::DocumentDiagnosticReport;
-use lsp_types::DocumentDiagnosticReportResult;
-use lsp_types::DocumentHighlight;
-use lsp_types::FullDocumentDiagnosticReport;
-use lsp_types::InlayHint;
-use lsp_types::Position;
-use lsp_types::Range;
-use lsp_types::RelatedFullDocumentDiagnosticReport;
-use lsp_types::SemanticTokens;
-use lsp_types::SemanticTokensResult;
-use lsp_types::TextEdit;
+use ls_types::Diagnostic;
+use ls_types::DocumentDiagnosticReport;
+use ls_types::DocumentDiagnosticReportResult;
+use ls_types::DocumentHighlight;
+use ls_types::FullDocumentDiagnosticReport;
+use ls_types::InlayHint;
+use ls_types::Position;
+use ls_types::Range;
+use ls_types::RelatedFullDocumentDiagnosticReport;
+use ls_types::SemanticTokens;
+use ls_types::SemanticTokensResult;
+use ls_types::TextEdit;
 use lustre_analyzer::parser::ast::Ast;
 use lustre_analyzer::parser::lustre_parser::lustre_parse;
 use tower_lsp_server::jsonrpc::Result;
@@ -113,7 +113,7 @@ impl Data {
                 data: ast.semantic_tokens_full(),
             }))),
             Err(_) => Ok(Some(SemanticTokensResult::Partial(
-                lsp_types::SemanticTokensPartialResult { data: vec![] },
+                ls_types::SemanticTokensPartialResult { data: vec![] },
             ))),
         }
     }

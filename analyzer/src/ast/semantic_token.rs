@@ -2,7 +2,7 @@ use crate::{
     ast::{token_type::TokenType, visitor::Visitor},
     parser::{ast::Ast, node::Node, span::Span, var_type::VarType},
 };
-use lsp_types::SemanticToken;
+use ls_types::SemanticToken;
 
 pub(crate) struct SemanticTokenVisitor {
     tokens: Vec<SemanticToken>,

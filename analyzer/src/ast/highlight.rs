@@ -2,7 +2,7 @@ use crate::{
     ast::{to_range::ToRange, visitor::Visitor},
     parser::{ast::Ast, binop::BinOp, node::Node, span::Span, unary_op::UnaryOp},
 };
-use lsp_types::{DocumentHighlight, DocumentHighlightKind, Position};
+use ls_types::{DocumentHighlight, DocumentHighlightKind, Position};
 
 #[derive(Debug)]
 pub(crate) struct DocumentHighlightVisitor {

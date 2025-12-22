@@ -3,7 +3,7 @@ use crate::{
     parser::{literal::Value, node::Node, span::Ident, var_type::VarType},
 };
 use indexmap::IndexMap;
-use lsp_types::{Diagnostic, DiagnosticSeverity};
+use ls_types::{Diagnostic, DiagnosticSeverity};
 use std::collections::HashMap;
 
 #[derive(Clone, Debug)]

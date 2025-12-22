@@ -5,7 +5,7 @@ use crate::parser::span::Span;
 use crate::parser::var_type::InnerVarType;
 use crate::parser::var_type::VarType;
 use crate::parser::white_space::ws;
-use lsp_types::Range;
+use ls_types::Range;
 use nom::{
     IResult, Parser,
     branch::alt,

@@ -11,7 +11,7 @@ use crate::parser::span::Span;
 use crate::parser::var_type::InnerVarType;
 use crate::parser::var_type::VarType;
 use crate::parser::white_space::ws;
-use lsp_types::Position;
+use ls_types::Position;
 use nom::IResult;
 use nom::Parser;
 use nom::branch::alt;

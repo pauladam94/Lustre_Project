@@ -1,5 +1,5 @@
 use crate::ast::{to_range::ToRange, token_type::TokenType};
-use lsp_types::{Position, Range, SemanticToken};
+use ls_types::{Position, Range, SemanticToken};
 use nom_locate::LocatedSpan;
 use std::cmp::Ordering;
 
