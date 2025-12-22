@@ -146,17 +146,51 @@ impl CheckerInfo {
             }
             Expr::BinOp {
                 lhs,
-                op: BinOp::Caret,
+                op: op @ BinOp::Caret,
                 span_op,
                 rhs,
             } => {
-                todo!()
+                let lt = self.get_type_expression(node, lhs)?;
+                let rt = self.get_type_expression(node, rhs)?;
+
+                if rt.inner != InnerVarType::Int {
+                    self.push_diagnostic(Diagnostic {
+                        message: format!("Expected type `int` on the right of `{}` but go {}.", op, rt),
+                        severity: Some(DiagnosticSeverity::ERROR),
+                        range: span_op.to_range(),
+                        ..Default::default()
+                    });
+                    None
+                } else {
+                    Some(lt.array_of())
+                }
             }
             Expr::UnaryOp {
-                op: UnaryOp::Inv,
-                span_op: _,
+                op: op @ UnaryOp::Inv,
+                span_op,
                 rhs,
-            } => self.get_type_expression(node, rhs), // todo check type of rhs
+            } => {
+                let rt = self.get_type_expression(node, rhs)?;
+                match rt.inner {
+                    InnerVarType::Unit | InnerVarType::Char | InnerVarType::String => {
+                        self.push_diagnostic(Diagnostic {
+                            message: format!(
+                                "`{}` Operation not defined for `{}` type.",
+                                op, rt.inner
+                            ),
+                            severity: Some(DiagnosticSeverity::ERROR),
+                            range: span_op.to_range(),
+                            ..Default::default()
+                        });
+                        None
+                    }
+                    InnerVarType::Int
+                    | InnerVarType::Float
+                    | InnerVarType::Bool
+                    | InnerVarType::Tuple(_)
+                    | InnerVarType::Array { t: _, len: _ } => Some(rt),
+                }
+            }
             Expr::UnaryOp {
                 op: UnaryOp::Pre,
                 span_op,
@@ -310,6 +344,8 @@ impl CheckerInfo {
         let mut call_type = FunctionCallType::Unknown;
         match self.nodes_types.get(name) {
             Some(ft) => {
+                // Arguments types for a Array call
+                let mut args_array_length = None;
                 // Cannot call function defined after the current node
                 let index_current_node = &self.nodes_types.get_index_of(&node.name).unwrap();
                 let index_called_node = &self.nodes_types.get_index_of(name).unwrap();
@@ -349,16 +385,26 @@ impl CheckerInfo {
                     });
                     return None;
                 }
+                // Here we are gonna determined in which call type
+                // of the given node we are in.
+                //
+                // We begin with unkown and diverge to `simple` or `array`
+                // call type after the first argument.
+                //
+                // Other arguments are also check to know if they match the
+                // guess call type.
                 for (i, (arg, (_, expected_type))) in args.iter().zip(ft.inputs.iter()).enumerate()
                 {
                     match self.get_type_expression(node, arg) {
                         Some(t) => match call_type {
                             FunctionCallType::Unknown => {
-                                // Always reachable because
+                                // Always reachable because we begin with Unknown type
                                 if &t == expected_type {
                                     call_type = FunctionCallType::Simple;
                                 } else if t.equal_array_of(expected_type) {
                                     call_type = FunctionCallType::Array;
+                                    // We now know the length of arrays for this `array` call type.
+                                    args_array_length = Some(t.get_length_array().unwrap());
                                 } else {
                                     self.push_diagnostic(Diagnostic {
                                         message: format!(
@@ -397,6 +443,24 @@ impl CheckerInfo {
                                         ..Default::default()
                                     });
                                     return None;
+                                } else {
+                                    let expected_length = args_array_length.unwrap();
+                                    let given_length = t.get_length_array().unwrap();
+                                    if given_length != expected_length {
+                                        self.push_diagnostic(Diagnostic {
+                                            message: format!(
+                                                "{} arguments of function {} is an array of length {} but expected length {}.",
+                                                numeral_string(i),
+                                                name,
+                                                given_length,
+                                                expected_length
+                                             ),
+                                            severity: Some(DiagnosticSeverity::ERROR),
+                                            range: name.to_range(),
+                                            ..Default::default()
+                                        });
+                                        return None;
+                                    }
                                 }
                             }
                         },
@@ -428,7 +492,7 @@ impl CheckerInfo {
                                 initialized: true,
                                 inner: InnerVarType::Array {
                                     t: Box::new(t.inner),
-                                    len: InferLen::Unknown,
+                                    len: InferLen::Known(args_array_length.unwrap()),
                                 },
                             })
                             .collect(),

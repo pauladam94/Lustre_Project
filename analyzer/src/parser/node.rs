@@ -8,7 +8,6 @@ use crate::parser::span::Ident;
 use crate::parser::span::LSpan;
 use crate::parser::span::PositionEnd;
 use crate::parser::span::Span;
-// use crate::parser::span_eq::_SpanEq;
 use crate::parser::var_type::InnerVarType;
 use crate::parser::var_type::VarType;
 use crate::parser::white_space::ws;
@@ -23,7 +22,6 @@ use nom::sequence::delimited;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Node {
-    // pub(crate) span_tag: Span,
     pub(crate) span_node: Span,
     pub(crate) span_returns: Span,
     pub(crate) span_let: Span,

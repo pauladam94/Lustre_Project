@@ -262,13 +262,8 @@ tel
 node test() returns (z: bool);
 let
     lhs = [1, 2, 3];
-    rhs = time_call([(), (), (), (), (), ()]);
+    rhs = time([(), (), (), (), (), ()]);
     z = lhs == rhs;
-tel
-
-node time_call() returns (z : int);
-let
-    z = time();
 tel
 ",
         )

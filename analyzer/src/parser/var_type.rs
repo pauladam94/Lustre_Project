@@ -72,10 +72,35 @@ impl VarType {
         self.inner == rhs.inner
     }
 
+    pub fn array_of(self) -> Self {
+        VarType {
+            inner: InnerVarType::Array {
+                t: Box::new(self.inner),
+                len: InferLen::Unknown,
+            },
+            initialized: self.initialized,
+        }
+    }
+    /// Check this type equality : `self` == \[lhs\]
     pub fn equal_array_of(&self, lhs: &Self) -> bool {
         match &self.inner {
             InnerVarType::Array { t, len: _ } => **t == lhs.inner,
             _ => false,
+        }
+    }
+    pub fn get_length_array(&self) -> Option<usize> {
+        if let VarType {
+            inner:
+                InnerVarType::Array {
+                    t: _,
+                    len: InferLen::Known(n),
+                },
+            initialized: _,
+        } = self
+        {
+            Some(*n)
+        } else {
+            None
         }
     }
     pub fn remove_one_pre(self) -> Self {

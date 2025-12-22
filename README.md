@@ -13,7 +13,7 @@ Project around the Lustre programming language aiming at providing :
 - [x] tableaux égaux pas être egaux quand de taille différentes
 - [x] affichages des hints de valeur de variables qui restent
 - [ ] clock support
-- [ ] support for create array of specific length `[value] ^ n`
+- [ ] support for create static array of specific length `[value] ^ n`
 - [ ] support for merge 
 - [ ] support for reset 
 - [x] support for 'if then else'
@@ -24,6 +24,7 @@ Project around the Lustre programming language aiming at providing :
 - [ ] add a lexing phase first (maybe in a lazy way)
 - [ ] parse tuple on the left of expression
 - [x] parse tuple in expression
+- [ ] fuzzing 
 - [ ] parse vars
 - [ ] more faulty parser
 - [ ] loss less parser

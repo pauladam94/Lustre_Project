@@ -24,7 +24,7 @@ impl CompiledNode {
         }
         done[start] = true;
         for neighbour in self.exprs[start].get_neighbours() {
-            if let CompiledExpr::Set { .. } = self.exprs[neighbour] {
+            if let CompiledExpr::Pre { .. } = self.exprs[neighbour] {
                 continue;
             }
             self.bfs(neighbour, done, pile);
@@ -72,8 +72,7 @@ impl CompiledNode {
         // Modify the
         for pos in 0..exprs.len() {
             match &mut exprs[pos] {
-                Set { src: index }
-                | Get { src: index }
+                Pre { src: index }
                 | UnaryOp { rhs: index, .. }
                 | Variable(index) => {
                     *index = new_index[*index].unwrap();
@@ -82,9 +81,9 @@ impl CompiledNode {
                     *lhs = new_index[*lhs].unwrap();
                     *rhs = new_index[*rhs].unwrap();
                 }
-                Array(items) | Tuple(items) => {
-                    items.iter_mut().for_each(|i| *i = new_index[*i].unwrap());
-                }
+                // Array(items) | Tuple(items) => {
+                //     items.iter_mut().for_each(|i| *i = new_index[*i].unwrap());
+                // }
                 If { cond, yes, no } => {
                     *cond = new_index[*cond].unwrap();
                     *yes = new_index[*yes].unwrap();

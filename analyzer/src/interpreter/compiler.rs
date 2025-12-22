@@ -44,20 +44,18 @@ impl Compiler {
         node: &Node,
         inputs: &[ExprIndex],
         outputs: &[ExprIndex],
-        vars: &mut HashMap<Span, ExprIndex>,
+        vars: &mut HashMap<Span, Vec<ExprIndex>>,
         expr: &Expr,
-    ) -> ExprIndex {
+    ) -> Vec<ExprIndex> {
         let iexpr = self.compile_expr(ast, node, inputs, outputs, vars, expr);
 
-        // let set = self
-        //     .ast
-        //     .push_expr(CompiledExpr::Get { src: iexpr }, format!("get {expr}"));
-
-        // self.ast
-        //     .push_expr(CompiledExpr::Get { src: set }, format!("set {expr}"))
-
-        self.ast
-            .push_expr(CompiledExpr::Set { src: iexpr }, format!("set {expr}"))
+        iexpr
+            .into_iter()
+            .map(|ie| {
+                self.ast
+                    .push_expr(CompiledExpr::Pre { src: ie }, format!("set {expr}"))
+            })
+            .collect()
     }
     fn compile_expr(
         &mut self,
@@ -65,9 +63,9 @@ impl Compiler {
         node: &Node,
         inputs: &[ExprIndex],
         outputs: &[ExprIndex],
-        vars: &mut HashMap<Span, ExprIndex>,
+        vars: &mut HashMap<Span, Vec<ExprIndex>>,
         expr: &Expr,
-    ) -> ExprIndex {
+    ) -> Vec<ExprIndex> {
         let info = format!("{expr}");
         match expr {
             Expr::BinOp {
@@ -78,14 +76,19 @@ impl Compiler {
             } => {
                 let ilhs = self.compile_expr(ast, node, inputs, outputs, vars, lhs);
                 let irhs = self.compile_pre(ast, node, inputs, outputs, vars, rhs);
-                self.ast.push_expr(
-                    CompiledExpr::BinOp {
-                        lhs: ilhs,
-                        op: BinOp::Arrow,
-                        rhs: irhs,
-                    },
-                    info,
-                )
+                ilhs.into_iter()
+                    .zip(irhs.into_iter())
+                    .map(|(il, ir)| {
+                        self.ast.push_expr(
+                            CompiledExpr::BinOp {
+                                lhs: il,
+                                op: BinOp::Arrow,
+                                rhs: ir,
+                            },
+                            info.clone(),
+                        )
+                    })
+                    .collect()
             }
             Expr::BinOp {
                 lhs,
@@ -95,14 +98,19 @@ impl Compiler {
             } => {
                 let ilhs = self.compile_expr(ast, node, inputs, outputs, vars, lhs);
                 let irhs = self.compile_expr(ast, node, inputs, outputs, vars, rhs);
-                self.ast.push_expr(
-                    CompiledExpr::BinOp {
-                        lhs: ilhs,
-                        rhs: irhs,
-                        op: *op,
-                    },
-                    info,
-                )
+                ilhs.into_iter()
+                    .zip(irhs.into_iter())
+                    .map(|(il, ir)| {
+                        self.ast.push_expr(
+                            CompiledExpr::BinOp {
+                                lhs: il,
+                                rhs: ir,
+                                op: *op,
+                            },
+                            info.clone(),
+                        )
+                    })
+                    .collect()
             }
             Expr::UnaryOp {
                 op: UnaryOp::Pre,
@@ -115,27 +123,31 @@ impl Compiler {
                 rhs,
             } => {
                 let irhs = self.compile_expr(ast, node, inputs, outputs, vars, rhs);
-                self.ast
-                    .push_expr(CompiledExpr::UnaryOp { op: *op, rhs: irhs }, info)
+                irhs.into_iter()
+                    .map(|ir| {
+                        self.ast
+                            .push_expr(CompiledExpr::UnaryOp { op: *op, rhs: ir }, info.clone())
+                    })
+                    .collect()
             }
             Expr::Array(exprs) | Expr::Tuple(exprs) => {
-                let iexprs: Vec<ExprIndex> = exprs
-                    .iter()
-                    .map(|e| self.compile_expr(ast, node, inputs, outputs, vars, e))
-                    .collect();
-
-                if let Expr::Array(_) = expr {
-                    self.ast.push_expr(CompiledExpr::Array(iexprs), info)
-                } else {
-                    self.ast
-                        .push_expr(CompiledExpr::tuple_from_vec(iexprs), info)
+                // Flatten operation : todo check
+                let mut res = vec![];
+                for expr in exprs.iter() {
+                    for index in self.compile_expr(ast, node, inputs, outputs, vars, expr) {
+                        res.push(index)
+                    }
                 }
+                res
             }
             Expr::FCall { name, args } => {
-                let iargs: Vec<ExprIndex> = args
-                    .iter()
-                    .map(|e| self.compile_expr(ast, node, inputs, outputs, vars, e))
-                    .collect();
+                let mut iargs = vec![];
+                // Flatten operation : todo check
+                for e in args.iter() {
+                    for index in self.compile_expr(ast, node, inputs, outputs, vars, e) {
+                        iargs.push(index)
+                    }
+                }
                 for node in ast.nodes.iter() {
                     if &node.name == name {
                         let (inputs_node, outputs_node) = self.compile_node(ast, node);
@@ -144,14 +156,7 @@ impl Compiler {
                             self.ast
                                 .replace_expr(CompiledExpr::Variable(*arg), *input_node);
                         }
-                        match outputs_node[..] {
-                            [i] => return i,
-                            _ => {
-                                return self
-                                    .ast
-                                    .push_expr(CompiledExpr::tuple_from_vec(outputs_node), info);
-                            }
-                        }
+                        return outputs_node;
                     }
                 }
                 // Thanks to type checking
@@ -159,20 +164,33 @@ impl Compiler {
             }
             Expr::Variable(var) => {
                 if let Some(i) = node.outputs.iter().position(|(x, _)| x == var) {
-                    return outputs[i];
+                    return vec![outputs[i]];
                 }
                 if let Some(i) = node.inputs.iter().position(|(x, _)| x == var) {
-                    return inputs[i];
+                    return vec![inputs[i]];
                 }
                 self.compile_var(ast, node, inputs, outputs, vars, var)
             }
-            Expr::Lit(value) => self.ast.push_expr(CompiledExpr::Lit(value.clone()), info),
+            Expr::Lit(value) => vec![self.ast.push_expr(CompiledExpr::Lit(value.clone()), info)],
             Expr::If { cond, yes, no } => {
                 let cond = self.compile_expr(ast, node, inputs, outputs, vars, cond);
                 let yes = self.compile_expr(ast, node, inputs, outputs, vars, yes);
                 let no = self.compile_expr(ast, node, inputs, outputs, vars, no);
 
-                self.ast.push_expr(CompiledExpr::If { cond, yes, no }, info)
+                cond.into_iter()
+                    .zip(yes.into_iter())
+                    .zip(no.into_iter())
+                    .map(|((c, y), n)| {
+                        self.ast.push_expr(
+                            CompiledExpr::If {
+                                cond: c,
+                                yes: y,
+                                no: n,
+                            },
+                            info.clone(),
+                        )
+                    })
+                    .collect()
             }
         }
     }
@@ -183,16 +201,16 @@ impl Compiler {
         node: &Node,
         inputs: &[ExprIndex],
         outputs: &[ExprIndex],
-        vars: &mut HashMap<Span, ExprIndex>,
+        vars: &mut HashMap<Span, Vec<ExprIndex>>,
         var: &Span,
-    ) -> ExprIndex {
+    ) -> Vec<ExprIndex> {
         if let Some(index) = vars.get(var) {
-            return *index;
+            return index.clone();
         }
         for (var_name, expr) in node.let_bindings.iter() {
             if var == var_name {
                 let index = self.compile_expr(ast, node, inputs, outputs, vars, expr);
-                vars.insert(var.clone(), index);
+                vars.insert(var.clone(), index.clone());
                 return index;
             }
         }
@@ -227,8 +245,9 @@ impl Compiler {
                 var_name,
             );
 
+            // TODO better this has no chance to work
             self.ast
-                .replace_expr(CompiledExpr::Variable(iexpr), outputs_index[i]);
+                .replace_expr(CompiledExpr::Variable(iexpr[0]), outputs_index[i]);
         }
         (inputs_index, outputs_index)
     }
