@@ -15,15 +15,11 @@ function getExePath(platform: string): string {
     } else if (platform === "darwin") {
         return "lustrels.darwin";
     } else {
-        return "lustrels.linux";
+        return "lustrels";
     }
 }
   
 export function activate(context: vscode.ExtensionContext) {
-  // Path to the LSP binary
-  // const serverExe = process.platform === "win32"
-  //   ? "lustrels.exe"
-  //   : "lustrels";
   
   const serverExe = getExePath(process.platform);
 

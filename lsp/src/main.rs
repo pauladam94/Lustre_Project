@@ -1,4 +1,7 @@
 use async_lock::RwLock;
+// use futures::executor::block_on;
+// use futures::future::pending;
+// use futures::io::AllowStdIo;
 use ls_types::{
     DiagnosticOptions, DiagnosticServerCapabilities, DocumentDiagnosticParams,
     DocumentDiagnosticReportResult, DocumentFormattingParams, DocumentHighlight,
@@ -10,6 +13,7 @@ use ls_types::{
 };
 use lustre_analyzer::ast::token_type::TokenType;
 use lustrels::data::Data;
+// use tokio::runtime::Builder;
 use tower_lsp_server::jsonrpc::Result;
 use tower_lsp_server::{Client, LanguageServer, LspService, Server};
 
@@ -71,8 +75,9 @@ impl LanguageServer for Backend {
     }
 
     async fn initialized(&self, _: InitializedParams) {
+        eprintln!("[lustrels] initialize()");
         self.client
-            .log_message(MessageType::INFO, "Lustre Server Initialized!")
+            .log_message(MessageType::INFO, "Lustre Server Initialized! LSP READY")
             .await;
     }
 
@@ -80,6 +85,7 @@ impl LanguageServer for Backend {
         Ok(())
     }
     async fn did_open(&self, params: ls_types::DidOpenTextDocumentParams) {
+        eprintln!("[lustrels] did_open called for {}", params.text_document.uri.as_str());
         self.update_text(params.text_document.text).await
     }
 
@@ -119,12 +125,19 @@ impl LanguageServer for Backend {
 
 #[tokio::main]
 async fn main() {
+    eprintln!("lustrels LSP main() entered");
+
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
+
+    eprintln!("LSP process started");
 
     let (service, socket) = LspService::new(|client| Backend {
         client,
         data: RwLock::new(Data::default()),
     });
+
+    eprintln!("before Server::serve()");
     Server::new(stdin, stdout, socket).serve(service).await;
 }
+

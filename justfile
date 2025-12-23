@@ -1,15 +1,17 @@
 install-lsp:
     cargo install --path lsp
 
+build-to TARGET-TRIPLE FILE:
+    cargo build --release --target {{TARGET-TRIPLE}} --bin lustrels
+    cp target/{{TARGET-TRIPLE}}/release/{{FILE}} vscode_extension/server/lustrels
+
+
 build-vscode-extension:
-    cargo build --release --target x86_64-unknown-linux-gnu --bin lustrels
-    cp target/x86_64-unknown-linux-gnu/release/lustrels vscode_extension/server/lustrels.linux
+    rm -f vscode_extension/server/*
 
-    # cargo build --release --target wasm32-unknown-unknown --bin lustrels
-    # cp target/release/lustrels vscode_extension/server/lustrels.wasm
+    just build-to x86_64-unknown-linux-gnu lustrels
 
-    # cargo build --release --target x86_64-unknown-linux-gnu --bin lustrels
-    # cp target/release/lustrels vscode_extension/server/lustrels.linux
+    # just build-to wasm32-wasip1 lustrels.wasm
 
     cd vscode_extension && vsce package --out lustre-vscode.vsix
     codium --install-extension vscode_extension/lustre-vscode.vsix 
