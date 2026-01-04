@@ -35,12 +35,12 @@ export function activate(context: vscode.ExtensionContext) {
 
   const clientOptions: LanguageClientOptions = {
     documentSelector: [{ scheme: "file", language: "lustre" }],
-    outputChannel: vscode.window.createOutputChannel("Lustre Language Server"),
+    outputChannel: vscode.window.createOutputChannel("lustrels"),
   };
 
   client = new LanguageClient(
-    "lustreLsp",
-    "Lustre Language Server",
+    "lustrels",
+    "lustrels",
     serverOptions,
     clientOptions
   );

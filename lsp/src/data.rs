@@ -1,18 +1,18 @@
-use ls_types::Diagnostic;
-use ls_types::DocumentDiagnosticReport;
-use ls_types::DocumentDiagnosticReportResult;
-use ls_types::DocumentHighlight;
-use ls_types::FullDocumentDiagnosticReport;
-use ls_types::InlayHint;
-use ls_types::Position;
-use ls_types::Range;
-use ls_types::RelatedFullDocumentDiagnosticReport;
-use ls_types::SemanticTokens;
-use ls_types::SemanticTokensResult;
-use ls_types::TextEdit;
+use lsp_types::Diagnostic;
+use lsp_types::DocumentDiagnosticReport;
+use lsp_types::DocumentDiagnosticReportResult;
+use lsp_types::DocumentHighlight;
+use lsp_types::FullDocumentDiagnosticReport;
+use lsp_types::InlayHint;
+use lsp_types::Position;
+use lsp_types::Range;
+use lsp_types::RelatedFullDocumentDiagnosticReport;
+use lsp_types::SemanticTokens;
+use lsp_types::SemanticTokensResult;
+use lsp_types::TextEdit;
 use lustre_analyzer::parser::ast::Ast;
 use lustre_analyzer::parser::lustre_parser::lustre_parse;
-use tower_lsp_server::jsonrpc::Result;
+// use tower_lsp_server::jsonrpc::Result;
 
 #[derive(Debug, Clone)]
 pub struct Data {
@@ -24,6 +24,9 @@ pub struct Data {
     test_diag: Vec<Diagnostic>,
 }
 impl Data {
+    pub fn text(&self) -> String {
+        self.text.clone()
+    }
     /// Core function that update the data concerning
     /// a given text that is Lustre code
     ///
@@ -50,7 +53,7 @@ impl Data {
             self.type_hint.clear();
         }
     }
-    pub fn formatting(&self) -> Result<Option<Vec<TextEdit>>> {
+    pub fn formatting(&self) -> Option<Vec<TextEdit>> {
         let mut text_edits: Vec<TextEdit> = self
             .text
             .lines()
@@ -73,18 +76,18 @@ impl Data {
         match &self.parse {
             Ok(ast) => {
                 text_edits.extend(ast.text_edit());
-                Ok(Some(text_edits))
+                Some(text_edits)
             }
-            _ => Ok(None),
+            _ => None,
         }
     }
-    pub fn document_hightlight(&self, pos: Position) -> Result<Option<Vec<DocumentHighlight>>> {
+    pub fn document_hightlight(&self, pos: Position) -> Option<Vec<DocumentHighlight>> {
         match &self.parse {
-            Err(_) => Ok(None),
-            Ok(ast) => Ok(Some(ast.document_hightlight(pos))),
+            Err(_) => None,
+            Ok(ast) => Some(ast.document_hightlight(pos)),
         }
     }
-    pub fn diagnostic(&self) -> Result<DocumentDiagnosticReportResult> {
+    pub fn diagnostic(&self) -> DocumentDiagnosticReportResult {
         let diags = match &self.parse {
             Ok(_) => {
                 if !self.test_diag.is_empty() {
@@ -96,31 +99,31 @@ impl Data {
             Err(d) => d.clone(),
         };
 
-        Ok(DocumentDiagnosticReportResult::Report(
-            DocumentDiagnosticReport::Full(RelatedFullDocumentDiagnosticReport {
+        DocumentDiagnosticReportResult::Report(DocumentDiagnosticReport::Full(
+            RelatedFullDocumentDiagnosticReport {
                 related_documents: None,
                 full_document_diagnostic_report: FullDocumentDiagnosticReport {
                     result_id: None,
                     items: diags,
                 },
-            }),
+            },
         ))
     }
-    pub fn semantic_tokens_full(&self) -> Result<Option<SemanticTokensResult>> {
+    pub fn semantic_tokens_full(&self) -> Option<SemanticTokensResult> {
         match &self.parse {
-            Ok(ast) => Ok(Some(SemanticTokensResult::Tokens(SemanticTokens {
+            Ok(ast) => Some(SemanticTokensResult::Tokens(SemanticTokens {
                 result_id: None,
                 data: ast.semantic_tokens_full(),
-            }))),
-            Err(_) => Ok(Some(SemanticTokensResult::Partial(
-                ls_types::SemanticTokensPartialResult { data: vec![] },
-            ))),
+            })),
+            Err(_) => Some(SemanticTokensResult::Partial(
+                lsp_types::SemanticTokensPartialResult { data: vec![] },
+            )),
         }
     }
-    pub fn inlay_hint(&self) -> Result<Option<Vec<InlayHint>>> {
+    pub fn inlay_hint(&self) -> Option<Vec<InlayHint>> {
         let mut hints = self.type_hint.clone();
         hints.extend(self.test_hint.iter().cloned());
-        Ok(Some(hints))
+        Some(hints)
     }
 }
 

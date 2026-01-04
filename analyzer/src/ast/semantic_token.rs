@@ -2,7 +2,7 @@ use crate::{
     ast::{token_type::TokenType, visitor::Visitor},
     parser::{ast::Ast, node::Node, span::Span, var_type::VarType},
 };
-use ls_types::SemanticToken;
+use lsp_types::SemanticToken;
 
 pub(crate) struct SemanticTokenVisitor {
     tokens: Vec<SemanticToken>,
@@ -14,7 +14,7 @@ impl SemanticTokenVisitor {
         self.tokens.push(token);
     }
     fn compile_tokens(&mut self) {
-        for i in (0..self.tokens.len()).rev() {
+        for i in (1..self.tokens.len()).rev() {
             let current = self.tokens[i];
             if let Some(last) = self.tokens.get(i - 1) {
                 self.tokens[i] = SemanticToken {

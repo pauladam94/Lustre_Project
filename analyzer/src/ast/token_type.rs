@@ -1,4 +1,4 @@
-use ls_types::SemanticTokenType;
+use lsp_types::SemanticTokenType;
 
 pub enum TokenType {
     Type,

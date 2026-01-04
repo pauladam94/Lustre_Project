@@ -1,7 +1,7 @@
 use crate::ast::to_range::ToRange;
 use crate::parser::ast::{Ast, ast};
 use crate::parser::span::LSpan;
-use ls_types::{Diagnostic, DiagnosticSeverity, Position, Range};
+use lsp_types::{Diagnostic, DiagnosticSeverity, Position, Range};
 
 pub fn lustre_parse(input: &str) -> Result<Ast, Vec<Diagnostic>> {
     match ast(LSpan::new(input)) {

@@ -13,7 +13,7 @@ use crate::{
     },
 };
 use indexmap::IndexMap;
-use ls_types::{
+use lsp_types::{
     Diagnostic, DiagnosticSeverity, InlayHint, InlayHintKind, InlayHintLabel, Position,
 };
 use std::collections::HashMap;

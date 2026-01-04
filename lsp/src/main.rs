@@ -1,143 +1,170 @@
-use async_lock::RwLock;
-// use futures::executor::block_on;
-// use futures::future::pending;
-// use futures::io::AllowStdIo;
-use ls_types::{
-    DiagnosticOptions, DiagnosticServerCapabilities, DocumentDiagnosticParams,
-    DocumentDiagnosticReportResult, DocumentFormattingParams, DocumentHighlight,
-    DocumentHighlightOptions, DocumentHighlightParams, InitializeParams, InitializeResult,
-    InitializedParams, InlayHint, InlayHintParams, MessageType, OneOf, SemanticTokenModifier,
-    SemanticTokensFullOptions, SemanticTokensLegend, SemanticTokensOptions, SemanticTokensParams,
-    SemanticTokensResult, SemanticTokensServerCapabilities, ServerCapabilities,
-    TextDocumentSyncCapability, TextDocumentSyncKind, TextEdit, WorkDoneProgressOptions,
+use std::io::{Read, Write, stdin};
+
+use colored::Colorize;
+use lsp_server::{Message, RequestId, Response};
+use lsp_types::{
+    DiagnosticOptions, DiagnosticServerCapabilities, DidChangeTextDocumentParams,
+    DidOpenTextDocumentParams, DocumentDiagnosticParams, DocumentHighlightOptions,
+    DocumentHighlightParams, InitializeParams, InitializeResult, InlayHintOptions, InlayHintParams,
+    OneOf, SemanticTokenModifier, SemanticTokensFullOptions, SemanticTokensLegend,
+    SemanticTokensOptions, SemanticTokensServerCapabilities, ServerCapabilities,
+    TextDocumentSyncCapability, TextDocumentSyncKind, WorkDoneProgressOptions, lsp_request,
 };
 use lustre_analyzer::ast::token_type::TokenType;
 use lustrels::data::Data;
-// use tokio::runtime::Builder;
-use tower_lsp_server::jsonrpc::Result;
-use tower_lsp_server::{Client, LanguageServer, LspService, Server};
+use serde_json::{Map, Value, from_value, to_string, to_string_pretty, to_value};
 
-#[derive(Debug)]
-struct Backend {
-    client: Client,
-    data: RwLock<Data>,
+fn read_message(buf: &mut [u8]) -> Message {
+    let mut string_buf = String::new();
+    let content_length = "Content-Length: ";
+    let _ = stdin().read_line(&mut string_buf);
+    let length = string_buf[content_length.len()..]
+        .trim()
+        .parse::<u64>()
+        .unwrap();
+    // eprintln!("length = {length}");
+    let mut buf = vec![0; length as usize];
+
+    let _ = stdin().read_line(&mut string_buf);
+    let mut count: u64 = 0;
+    while count < length {
+        // let mut u8_buf = vec![0; length as usize];
+        if let Ok(n) = stdin().read(&mut buf) {
+            if n == 0 {
+                eprintln!("Nothing has been read (read() == 0)");
+                continue;
+            }
+            count += n as u64;
+            // eprintln!(
+            //     "Message = \"{}\"",
+            //     String::from_utf8(u8_buf.clone()).unwrap()
+            // );
+        }
+    }
+    // eprintln!("ALL Buffer: {}", String::from_utf8(buf.clone()).unwrap());
+    // eprintln!(
+    //     "Truncated Buffer: {}",
+    //     String::from_utf8(buf.clone()[..(length as usize)].to_vec()).unwrap()
+    // );
+    return serde_json::from_slice(&buf[..(length as usize)]).unwrap();
 }
 
-impl Backend {
-    async fn update_text(&self, s: String) {
-        self.data.write().await.update_text(s)
+fn send_message(msg: Message) {
+    let len = serde_json::to_vec(&msg).unwrap().len();
+    print!("Content-Length: {}\r\n\r\n", len);
+    // let mut buf = vec![];
+    let _ = std::io::stdout().flush();
+    serde_json::to_writer(std::io::stdout(), &to_value(&msg).unwrap()).unwrap();
+    let _ = std::io::stdout().flush();
+    // serde_json::to_writer(&mut buf, &to_value(&msg).unwrap()).unwrap();
+    // eprintln!("SEND {len} bytes : \n{}", String::from_utf8(buf).unwrap());
+}
+fn main() {
+    let mut data = Data::default();
+    let mut message: Message;
+    let mut buf = Vec::new();
+
+    loop {
+        message = read_message(&mut buf);
+        match message {
+            Message::Request(request) => {
+                eprintln!(">> GOT Request {}", request.method);
+                eprintln!("Text state : {}", data.text());
+                let method = request.method;
+                let params = request.params;
+
+                if method == "initialize" {
+                    let _params: InitializeParams = from_value(params).unwrap();
+                    send_message(Message::Response(Response {
+                        id: request.id,
+                        result: Some(to_value(initialize_result()).unwrap()),
+                        error: None,
+                    }));
+                } else if method == "textDocument/inlayHint" {
+                    let _params: InlayHintParams = from_value(params).unwrap();
+
+                    send_message(Message::Response(Response {
+                        id: request.id,
+                        result: data.inlay_hint().map(|v| to_value(v).unwrap()),
+                        error: None,
+                    }));
+                } else if method == "textDocument/diagnostic" {
+                    send_message(Message::Response(Response {
+                        id: request.id,
+                        result: Some(to_value(data.diagnostic()).unwrap()),
+                        error: None,
+                    }));
+                } else if method == "textDocument/semanticTokens/full" {
+                    send_message(Message::Response(Response {
+                        id: request.id,
+                        result: Some(to_value(data.semantic_tokens_full()).unwrap()),
+                        error: None,
+                    }));
+                } else if method == "textDocument/documentHightlight" {
+                    let params: DocumentHighlightParams = from_value(params).unwrap();
+                    send_message(Message::Response(Response {
+                        id: request.id,
+                        result: Some(
+                            to_value(data.document_hightlight(
+                                params.text_document_position_params.position,
+                            ))
+                            .unwrap(),
+                        ),
+                        error: None,
+                    }));
+                } else if method == "textDocument/formatting" {
+                } else {
+                    eprintln!(">> ERROR : method {method} not supported");
+                }
+            }
+            Message::Response(response) => todo!(),
+            Message::Notification(notification) => {
+                eprintln!(">> GOT Notification {}", notification.method);
+                eprintln!("Text state : {}", data.text());
+                let method = notification.method;
+                let params = notification.params;
+                if method == "textDocument/didOpen" {
+                    let params: DidOpenTextDocumentParams = from_value(params).unwrap();
+                    data.update_text(params.text_document.text);
+                } else if method == "textDocument/didChange" {
+                    let params: DidChangeTextDocumentParams = from_value(params).unwrap();
+                    data.update_text(params.content_changes[0].text.clone());
+                }
+            }
+        }
     }
 }
 
-impl LanguageServer for Backend {
-    async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
-        Ok(InitializeResult {
-            capabilities: ServerCapabilities {
-                document_formatting_provider: Some(OneOf::Left(true)),
-                text_document_sync: Some(TextDocumentSyncCapability::Kind(
-                    TextDocumentSyncKind::FULL,
-                )),
-                document_highlight_provider: Some(OneOf::Right(DocumentHighlightOptions {
-                    work_done_progress_options: WorkDoneProgressOptions {
-                        work_done_progress: Some(true),
-                    },
-                })),
-                diagnostic_provider: Some(DiagnosticServerCapabilities::Options(
-                    DiagnosticOptions {
-                        identifier: None,
-                        inter_file_dependencies: false,
-                        workspace_diagnostics: false,
-                        work_done_progress_options: WorkDoneProgressOptions {
-                            work_done_progress: None,
-                        },
-                    },
-                )),
-                semantic_tokens_provider: Some(
-                    SemanticTokensServerCapabilities::SemanticTokensOptions(
-                        SemanticTokensOptions {
-                            work_done_progress_options: WorkDoneProgressOptions {
-                                work_done_progress: None,
-                            },
-                            legend: SemanticTokensLegend {
-                                token_types: TokenType::to_vec(),
-                                token_modifiers: vec![SemanticTokenModifier::DECLARATION],
-                            },
-                            range: Some(false),
-                            full: Some(SemanticTokensFullOptions::Bool(true)),
-                        },
-                    ),
-                ),
-                inlay_hint_provider: Some(OneOf::Left(true)),
-                ..Default::default()
-            },
+fn initialize_result() -> InitializeResult {
+    InitializeResult {
+        capabilities: ServerCapabilities {
+            document_formatting_provider: Some(OneOf::Left(true)),
+            text_document_sync: Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL)),
+            // document_highlight_provider: Some(OneOf::Left(true)),
+            // diagnostic_provider: Some(DiagnosticServerCapabilities::Options(DiagnosticOptions {
+            //     identifier: None,
+            //     inter_file_dependencies: false,
+            //     workspace_diagnostics: false,
+            //     work_done_progress_options: WorkDoneProgressOptions {
+            //         work_done_progress: None,
+            //     },
+            // })),
+            // semantic_tokens_provider: Some(
+            //     SemanticTokensServerCapabilities::SemanticTokensOptions(SemanticTokensOptions {
+            //         work_done_progress_options: WorkDoneProgressOptions {
+            //             work_done_progress: None,
+            //         },
+            //         legend: SemanticTokensLegend {
+            //             token_types: TokenType::to_vec(),
+            //             token_modifiers: vec![SemanticTokenModifier::DECLARATION],
+            //         },
+            //         range: Some(false),
+            //         full: Some(SemanticTokensFullOptions::Bool(true)),
+            //     }),
+            // ),
+            inlay_hint_provider: Some(OneOf::Left(true)),
             ..Default::default()
-        })
-    }
-
-    async fn initialized(&self, _: InitializedParams) {
-        eprintln!("[lustrels] initialize()");
-        self.client
-            .log_message(MessageType::INFO, "Lustre Server Initialized! LSP READY")
-            .await;
-    }
-
-    async fn shutdown(&self) -> Result<()> {
-        Ok(())
-    }
-    async fn did_open(&self, params: ls_types::DidOpenTextDocumentParams) {
-        eprintln!("[lustrels] did_open called for {}", params.text_document.uri.as_str());
-        self.update_text(params.text_document.text).await
-    }
-
-    async fn did_change(&self, params: ls_types::DidChangeTextDocumentParams) {
-        self.update_text(params.content_changes[0].text.clone())
-            .await
-    }
-    async fn formatting(&self, _: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
-        self.data.read().await.formatting()
-    }
-
-    async fn document_highlight(
-        &self,
-        params: DocumentHighlightParams,
-    ) -> Result<Option<Vec<DocumentHighlight>>> {
-        let pos = params.text_document_position_params.position;
-        self.data.read().await.document_hightlight(pos)
-    }
-
-    async fn diagnostic(
-        &self,
-        _: DocumentDiagnosticParams,
-    ) -> Result<DocumentDiagnosticReportResult> {
-        self.data.read().await.diagnostic()
-    }
-
-    async fn semantic_tokens_full(
-        &self,
-        _: SemanticTokensParams,
-    ) -> Result<Option<SemanticTokensResult>> {
-        self.data.read().await.semantic_tokens_full()
-    }
-    async fn inlay_hint(&self, _: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
-        self.data.read().await.inlay_hint()
+        },
+        ..Default::default()
     }
 }
-
-#[tokio::main]
-async fn main() {
-    eprintln!("lustrels LSP main() entered");
-
-    let stdin = tokio::io::stdin();
-    let stdout = tokio::io::stdout();
-
-    eprintln!("LSP process started");
-
-    let (service, socket) = LspService::new(|client| Backend {
-        client,
-        data: RwLock::new(Data::default()),
-    });
-
-    eprintln!("before Server::serve()");
-    Server::new(stdin, stdout, socket).serve(service).await;
-}
-
