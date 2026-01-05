@@ -10,7 +10,7 @@ use lsp_types::RelatedFullDocumentDiagnosticReport;
 use lsp_types::SemanticTokens;
 use lsp_types::SemanticTokensResult;
 use lsp_types::TextEdit;
-use lustre_analyzer::parser::ast::Ast;
+use lustre_analyzer::ast::ast::Ast;
 use lustre_analyzer::parser::lustre_parser::lustre_parse;
 
 #[derive(Debug, Clone)]

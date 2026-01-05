@@ -1,6 +1,6 @@
 use crate::{
-    ast::to_range::ToRange,
-    parser::{literal::Value, node::Node, span::Ident, var_type::VarType},
+    ast::{node::Node, to_range::ToRange},
+    parser::{literal::Value, span::Ident, var_type::VarType},
 };
 use indexmap::IndexMap;
 use lsp_types::{Diagnostic, DiagnosticSeverity};

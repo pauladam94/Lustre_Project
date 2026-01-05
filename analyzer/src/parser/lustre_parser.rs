@@ -1,5 +1,5 @@
-use crate::ast::to_range::ToRange;
-use crate::parser::ast::{Ast, ast};
+use crate::ast::{ast::Ast, to_range::ToRange};
+use crate::parser::ast::ast;
 use crate::parser::span::LSpan;
 use lsp_types::{Diagnostic, DiagnosticSeverity, Position, Range};
 

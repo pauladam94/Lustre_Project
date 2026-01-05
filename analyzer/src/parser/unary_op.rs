@@ -1,7 +1,4 @@
-use crate::{
-    interpreter::instant::Instant,
-    parser::{expression::Precedence, literal::Value},
-};
+use crate::{ast::expression::Precedence, interpreter::instant::Instant, parser::literal::Value};
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
 pub enum UnaryOp {

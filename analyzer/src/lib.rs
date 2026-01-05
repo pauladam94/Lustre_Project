@@ -1,3 +1,5 @@
+// #![feature(array_try_map)]
+
 pub mod ast;
 pub mod checker;
 pub mod interpreter;

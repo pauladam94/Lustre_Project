@@ -1,8 +1,5 @@
-use crate::parser::{
-    expression::{Expr, expression},
-    span::LSpan,
-    white_space::ws,
-};
+use crate::ast::expression::Expr;
+use crate::parser::{expression::expression, span::LSpan, white_space::ws};
 use nom::Parser;
 use nom::{
     IResult,

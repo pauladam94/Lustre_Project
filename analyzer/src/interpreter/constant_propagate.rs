@@ -1,10 +1,8 @@
 use crate::{
+    ast::{ast::Ast, expression::Expr, node::Node},
     checker::function_type::{FunctionCallType, FunctionType},
     parser::{
-        ast::Ast,
-        expression::Expr,
         literal::Value,
-        node::Node,
         span::{PositionEnd, Span},
     },
 };

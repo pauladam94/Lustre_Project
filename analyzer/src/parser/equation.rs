@@ -1,9 +1,9 @@
-use crate::parser::{
-    expression::{Expr, expression},
+use crate::{ast::expression::Expr, parser::{
+    expression::expression,
     literal::identifier,
     span::{Ident, LSpan, Span},
     white_space::ws,
-};
+}};
 use nom::{IResult, Parser, bytes::complete::tag, multi::fold, sequence::separated_pair};
 
 pub(crate) fn equation(input: LSpan) -> IResult<LSpan, (Ident, Expr)> {

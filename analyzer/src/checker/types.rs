@@ -1,12 +1,9 @@
 use crate::{
-    ast::to_range::ToRange,
+    ast::{ast::Ast, expression::Expr, node::Node, to_range::ToRange},
     checker::{function_type::FunctionType, infer_types::InferLen},
     parser::{
-        ast::Ast,
         binop::BinOp,
-        expression::Expr,
         literal::Value,
-        node::Node,
         span::{Ident, PositionEnd, Span},
         unary_op::UnaryOp,
         var_type::{InnerVarType, VarType},

@@ -1,6 +1,6 @@
 use crate::{
-    ast::{token_type::TokenType, visitor::Visitor},
-    parser::{ast::Ast, node::Node, span::Span, var_type::VarType},
+    ast::{ast::Ast, node::Node, token_type::TokenType, visitor::Visitor},
+    parser::{span::Span, var_type::VarType},
 };
 use lsp_types::SemanticToken;
 

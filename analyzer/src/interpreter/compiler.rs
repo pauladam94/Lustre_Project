@@ -1,6 +1,7 @@
 use crate::{
+    ast::{ast::Ast, expression::Expr, node::Node},
     interpreter::{compiled_ast::CompiledNode, compiled_expr::CompiledExpr, expr_index::ExprIndex},
-    parser::{ast::Ast, binop::BinOp, expression::Expr, node::Node, span::Span, unary_op::UnaryOp},
+    parser::{binop::BinOp, span::Span, unary_op::UnaryOp},
 };
 use colored::Colorize;
 use std::collections::HashMap;

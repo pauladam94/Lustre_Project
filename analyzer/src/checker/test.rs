@@ -1,7 +1,5 @@
 use std::io::Write;
-
 use colored::Colorize;
-
 use crate::parser::{ast::ast, span::LSpan, test::ok_parse};
 
 /// Verify that the given lustre program :

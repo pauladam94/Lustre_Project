@@ -14,3 +14,5 @@ nom_locate = "5.0.0"
 lsp-types = "0.97.0"
 
 colored = "3"
+
+logos = "0.16.0"
