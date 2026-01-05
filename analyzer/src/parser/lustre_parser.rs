@@ -3,6 +3,7 @@ use crate::parser::ast::{Ast, ast};
 use crate::parser::span::LSpan;
 use lsp_types::{Diagnostic, DiagnosticSeverity, Position, Range};
 
+/// Parse a given string into a complete AST
 pub fn lustre_parse(input: &str) -> Result<Ast, Vec<Diagnostic>> {
     match ast(LSpan::new(input)) {
         Ok((_, ast)) => Ok(ast),

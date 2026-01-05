@@ -584,4 +584,17 @@ let
 tel",
         );
     }
+
+    #[test]
+    fn basic_fibo_ok() {
+        ok_parse(
+            "  
+node fibo() returns (z : int);
+let
+  x = 1 + x;
+  y = 1 fby z;
+  z = x + y;
+tel",
+        )
+    }
 }

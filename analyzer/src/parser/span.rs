@@ -132,6 +132,7 @@ impl Span {
             fragment: input.fragment().to_string(),
         }
     }
+    /// This functions get the string associated to the [Span]
     pub fn fragment(&self) -> String {
         self.fragment.clone()
     }

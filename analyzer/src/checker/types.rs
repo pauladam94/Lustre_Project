@@ -22,16 +22,29 @@ use std::collections::HashMap;
 struct CheckerInfo {
     nodes_types: IndexMap<Ident, FunctionType>,
     local_types: HashMap<Ident, Option<VarType>>,
+    search_stack: Vec<Span>,
     current_node: Ident,
     diagnostics: Vec<Diagnostic>,
     hints: Vec<InlayHint>,
 }
 
 impl CheckerInfo {
+    fn number_diagnostics(&self) -> usize {
+        self.diagnostics.len()
+    }
     fn set_current_node(&mut self, name: &Ident) {
         self.current_node = name.clone()
     }
 
+    fn push_new_search(&mut self, var: Span) {
+        self.search_stack.push(var)
+    }
+    fn pop_search(&mut self) {
+        self.search_stack.pop();
+    }
+    fn last_search(&self) -> Option<&Span> {
+        self.search_stack.last()
+    }
     fn push_diagnostic(&mut self, diag: Diagnostic) {
         self.diagnostics.push(diag)
     }
@@ -530,10 +543,23 @@ impl CheckerInfo {
     }
 
     fn get_type_var(&mut self, node: &Node, var: &Span) -> Option<VarType> {
+        if self.search_stack.contains(var) {
+            self.push_diagnostic(Diagnostic {
+                message: format!("Need more type information on {}", var),
+                severity: Some(DiagnosticSeverity::ERROR),
+                range: var.to_range(),
+                ..Default::default()
+            });
+            return None;
+        } else {
+            self.push_new_search(var.clone());
+        }
+        let var = self.last_search().unwrap();
         for (name, expr) in node.let_bindings.iter() {
             if name == var {
                 let var_type = self.get_type_expression(node, expr);
                 self.local_types.insert(name.clone(), var_type.clone());
+                self.pop_search();
                 return var_type;
             }
         }
@@ -571,11 +597,99 @@ impl CheckerInfo {
         }
     }
 
+    fn check_cycle_from_expr(&mut self, node: &Node, seen: &mut Vec<String>, expr: &Expr) {
+        match expr {
+            // In those 2 cases we cut the chase because
+            // `fby` and `pre` cut temporal cycle.
+            Expr::BinOp { op: BinOp::Fby, .. }
+            | Expr::UnaryOp {
+                op: UnaryOp::Pre, ..
+            } => {}
+            Expr::BinOp {
+                lhs,
+                op: _,
+                span_op: _,
+                rhs,
+            } => {
+                self.check_cycle_from_expr(node, seen, lhs);
+                self.check_cycle_from_expr(node, seen, rhs);
+            }
+            Expr::UnaryOp {
+                op: _,
+                span_op: _,
+                rhs,
+            } => {
+                self.check_cycle_from_expr(node, seen, rhs);
+            }
+            Expr::If { cond, yes, no } => {
+                self.check_cycle_from_expr(node, seen, cond);
+                self.check_cycle_from_expr(node, seen, yes);
+                self.check_cycle_from_expr(node, seen, no);
+            }
+            Expr::Array(exprs)
+            | Expr::Tuple(exprs)
+            | Expr::FCall {
+                name: _,
+                args: exprs,
+            } => {
+                for expr in exprs {
+                    self.check_cycle_from_expr(node, seen, expr);
+                }
+            }
+            Expr::Variable(span) => {
+                let var = span.fragment();
+                if seen.contains(&var) {
+                    let mut s = String::new();
+                    for v in seen.iter() {
+                        s.push_str(&format!("{v} - "));
+                    }
+                    self.push_diagnostic(Diagnostic {
+                        message: format!(
+                            "Cycle found here with variable {span} comming from {}.
+                            All cycle : {s}
+                            ",
+                            seen.first().unwrap()
+                        ),
+                        severity: Some(DiagnosticSeverity::ERROR),
+                        range: span.to_range(),
+                        ..Default::default()
+                    });
+                } else {
+                    seen.push(var);
+                    self.check_cycle_from(node, seen);
+                    seen.pop();
+                }
+            }
+            Expr::Lit(_) => {}
+        }
+    }
+    fn check_cycle_from(&mut self, node: &Node, seen: &mut Vec<String>) {
+        for (name, expr) in node.let_bindings.iter() {
+            if &name.fragment() == seen.last().unwrap() {
+                self.check_cycle_from_expr(node, seen, expr);
+            }
+        }
+    }
+    fn check_cycle(&mut self, node: &Node) {
+        let mut seen: Vec<String> = vec![];
+        for (out, _) in node.outputs.iter() {
+            seen.push(out.fragment());
+            self.check_cycle_from(node, &mut seen);
+            seen.pop();
+        }
+    }
+
     fn check_node(&mut self, node: &Node) {
         self.set_current_node(&node.name);
-
         self.local_types.clear();
         self.setup_local_types(node);
+
+        let number_diags = self.number_diagnostics();
+        self.check_cycle(node);
+        // Stop Here if check_cycle has found a cycle
+        if self.number_diagnostics() > number_diags {
+            return;
+        }
 
         for (out, t) in node.outputs.iter() {
             match &self.get_type_var(node, out) {
@@ -651,8 +765,11 @@ impl CheckerInfo {
     fn check_ast(&mut self, ast: &Ast) {
         self.get_nodes_types(ast);
 
+        // This is not used for now
+        let mut types_computed = vec![];
         for node in ast.nodes.iter() {
             self.check_node(node);
+            types_computed.push(self.local_types.clone());
             self.push_type_hint_equation(node);
         }
     }

@@ -1,4 +1,5 @@
 use crate::checker::infer_types::InferLen;
+use crate::parser::literal::integer;
 use crate::parser::span::LSpan;
 use crate::parser::white_space::ws;
 use nom::branch::alt;
@@ -172,43 +173,33 @@ impl VarType {
         }
     }
 }
-pub(crate) fn var_type(input: LSpan) -> IResult<LSpan, VarType> {
+
+pub(crate) fn simple_inner_var_type(input: LSpan) -> IResult<LSpan, InnerVarType> {
     ws(alt((
-        value(
-            VarType {
-                initialized: true,
-                inner: InnerVarType::Int,
-            },
-            tag("int"),
-        ),
-        value(
-            VarType {
-                initialized: true,
-                inner: InnerVarType::Float,
-            },
-            alt((tag("float"), tag("real"))),
-        ),
-        value(
-            VarType {
-                initialized: true,
-                inner: InnerVarType::Char,
-            },
-            tag("char"),
-        ),
-        value(
-            VarType {
-                initialized: true,
-                inner: InnerVarType::Bool,
-            },
-            tag("bool"),
-        ),
-        value(
-            VarType {
-                initialized: true,
-                inner: InnerVarType::String,
-            },
-            tag("string"),
-        ),
+        value(InnerVarType::Int, tag("int")),
+        value(InnerVarType::Float, alt((tag("float"), tag("real")))),
+        value(InnerVarType::Char, tag("char")),
+        value(InnerVarType::Bool, tag("bool")),
+        value(InnerVarType::String, tag("string")),
     )))
     .parse(input)
+}
+
+pub(crate) fn inner_var_type(input: LSpan) -> IResult<LSpan, InnerVarType> {
+    alt((
+        (simple_inner_var_type, tag("^"), integer).map(|(t, _, len)| InnerVarType::Array {
+            t: Box::new(t),
+            len: InferLen::Known(len as usize),
+        }),
+        simple_inner_var_type,
+    ))
+    .parse(input)
+}
+pub(crate) fn var_type(input: LSpan) -> IResult<LSpan, VarType> {
+    inner_var_type
+        .map(|inner| VarType {
+            inner,
+            initialized: true,
+        })
+        .parse(input)
 }

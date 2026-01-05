@@ -2745,13 +2745,10 @@ dependencies = [
 name = "lustrels"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "colored",
- "log",
  "lsp-server",
  "lsp-types",
  "lustre_analyzer",
- "rustc-hash 2.1.1",
  "serde",
  "serde_derive",
  "serde_json",

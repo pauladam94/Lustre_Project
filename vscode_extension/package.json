@@ -2,7 +2,7 @@
   "name": "lustrels",
   "displayName": "Lustre Language Support",
   "description": "VS Code extension providing LSP support for Lustre (.lus) using lustre-lsp",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "pauladam",
   "repository": "https://github.com/pauladam94/Lustre_Project",
   "engines": {

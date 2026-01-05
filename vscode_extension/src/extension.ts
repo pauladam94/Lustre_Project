@@ -1,54 +1,78 @@
-import * as path from "path";
-import * as vscode from "vscode";
-import {
-  LanguageClient,
-  LanguageClientOptions,
-  ServerOptions,
-  TransportKind
-} from "vscode-languageclient/node";
+/* --------------------------------------------------------------------------------------------
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License. See License.txt in the project root for license information.
+ * ------------------------------------------------------------------------------------------ */
+
+import { ExtensionContext, Uri, window, workspace, commands } from 'vscode';
+import { LanguageClient, LanguageClientOptions, ServerOptions, RequestType } from 'vscode-languageclient/node';
+import { Wasm, ProcessOptions } from '@vscode/wasm-wasi/v1';
+import { createStdioOptions, createUriConverters, startServer } from '@vscode/wasm-wasi-lsp';
 
 let client: LanguageClient;
 
-function getExePath(platform: string): string {
-    if (platform === "win32") {
-        return "lustrels.exe";
-    } else if (platform === "darwin") {
-        return "lustrels.darwin";
-    } else {
-        return "lustrels";
-    }
+export async function activate(context: ExtensionContext) {
+
+	
+	const wasm: Wasm = await Wasm.load();
+
+	const channel = window.createOutputChannel('LSP WASM Server');
+
+	console.log('[lustrels] activate() start');
+	channel.appendLine('[lustrels] Output channel ready');
+
+	const serverOptions: ServerOptions = async () => {
+		const options: ProcessOptions = {
+			stdio: createStdioOptions(),
+			mountPoints: [
+				{ kind: 'workspaceFolder' },
+			]
+		};
+		const filename = Uri.joinPath(context.extensionUri, 'server', 'lustrels.wasm');
+		const bits = await workspace.fs.readFile(filename) as Uint8Array<ArrayBuffer>;
+
+		channel.appendLine('[lustrels] Loading WASM file');
+
+		const module = await WebAssembly.compile(bits);
+		// const module = await wasm.compile(filename);
+		const process = await wasm.createProcess('lsp-server', module, { initial: 160, maximum: 160, shared: true }, options);
+
+		channel.appendLine('[lustrels] WASM process created');
+
+		const decoder = new TextDecoder('utf-8');
+		process.stderr!.onData(data => {
+      channel.append(decoder.decode(data));
+		});
+
+		return startServer(process);
+	};
+	const clientOptions: LanguageClientOptions = {
+		documentSelector: [{ scheme: 'file', language: 'lustre' }],
+		outputChannel: channel,
+		uriConverters: createUriConverters(),
+	};
+
+	client = new LanguageClient('lspClient', 'LSP Client', serverOptions, clientOptions);
+	try {
+		await client.start();
+	} catch (error) {
+		client.error(`Start failed`, error, 'force');
+	}
+	channel.appendLine('[lustrels] serverOptions entered');
+
+	interface CountFileParams {
+		readonly folder: string
+	};
+	const CountFilesRequest = new RequestType<CountFileParams, number, void>('wasm-language-server/countFiles');
+	context.subscriptions.push(commands.registerCommand('vscode-samples.wasm-language-server.countFiles', async () => {
+		// We assume we do have a folder.
+		const folder = workspace.workspaceFolders![0].uri;
+		// We need to convert the folder URI to a URI that maps to the mounted WASI file system. This is something
+		// @vscode/wasm-wasi-lsp does for us.
+		const result = await client.sendRequest(CountFilesRequest, { folder: client.code2ProtocolConverter.asUri(folder) });
+		window.showInformationMessage(`The workspace contains ${result} files.`);
+	}));
 }
-  
-export function activate(context: vscode.ExtensionContext) {
-  
-  const serverExe = getExePath(process.platform);
 
-  // Full path to where we keep the LSP binary inside the extension
-  const serverPath = context.asAbsolutePath(
-    path.join("server", serverExe)
-  );
-
-  const serverOptions: ServerOptions = {
-    run: { command: serverPath, transport: TransportKind.stdio },
-    debug: { command: serverPath, transport: TransportKind.stdio }
-  };
-
-  const clientOptions: LanguageClientOptions = {
-    documentSelector: [{ scheme: "file", language: "lustre" }],
-    outputChannel: vscode.window.createOutputChannel("lustrels"),
-  };
-
-  client = new LanguageClient(
-    "lustrels",
-    "lustrels",
-    serverOptions,
-    clientOptions
-  );
-
-  client.start();
+export function deactivate() {
+	return client.stop();
 }
-
-export function deactivate(): Thenable<void> | undefined {
-  return client ? client.stop() : undefined;
-}
-

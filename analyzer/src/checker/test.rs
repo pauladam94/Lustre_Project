@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use colored::Colorize;
 
 use crate::parser::{ast::ast, span::LSpan, test::ok_parse};
@@ -23,6 +25,7 @@ pub fn ok_check(input: &str) {
 
 pub fn error_check(input: &str) {
     ok_parse(input);
+    let _ = std::io::stdout().flush();
     let (_, build_ast) = ast(LSpan::new(input)).unwrap();
 
     let (diags, _) = build_ast.check();
@@ -266,6 +269,42 @@ let
     z = lhs == rhs;
 tel
 ",
+        )
+    }
+    #[test]
+    fn cycle_1() {
+        error_check(
+            "  
+node fibo() returns (z : int);
+let
+  x = 1 + x;
+  y = 1 fby z;
+  z = x + y;
+tel",
+        )
+    }
+    #[test]
+    fn cycle_2() {
+        ok_check(
+            "  
+node fibo() returns (z : int);
+let
+  x = 1 + pre x;
+  y = 1 fby z;
+  z = x + y;
+tel",
+        )
+    }
+    #[test]
+    fn cycle_3() {
+        error_check(
+            "  
+node fibo() returns (z : int);
+let
+  x = z;
+  y = 1 fby z;
+  z = x + y;
+tel",
         )
     }
 }

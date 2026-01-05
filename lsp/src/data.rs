@@ -12,18 +12,17 @@ use lsp_types::SemanticTokensResult;
 use lsp_types::TextEdit;
 use lustre_analyzer::parser::ast::Ast;
 use lustre_analyzer::parser::lustre_parser::lustre_parse;
-// use tower_lsp_server::jsonrpc::Result;
 
 #[derive(Debug, Clone)]
-pub struct Data {
+pub struct ServerState {
     text: String,
     parse: std::result::Result<Ast, Vec<Diagnostic>>,
-    check: Vec<Diagnostic>,
+    type_diag: Vec<Diagnostic>,
     type_hint: Vec<InlayHint>,
     test_hint: Vec<InlayHint>,
     test_diag: Vec<Diagnostic>,
 }
-impl Data {
+impl ServerState {
     pub fn text(&self) -> String {
         self.text.clone()
     }
@@ -38,17 +37,17 @@ impl Data {
         self.text = s;
         self.parse = lustre_parse(&self.text);
         if let Ok(ast) = &self.parse {
-            let (check, type_hint) = ast.check();
-            if check.is_empty() {
+            let (diags, type_hint) = ast.check();
+            if diags.is_empty() {
                 let (_, test_hint) = ast.propagate_const();
                 self.test_hint = test_hint;
             } else {
                 self.test_hint.clear();
             }
-            self.check = check;
+            self.type_diag = diags;
             self.type_hint = type_hint;
         } else {
-            self.check.clear();
+            self.type_diag.clear();
             self.test_hint.clear();
             self.type_hint.clear();
         }
@@ -93,7 +92,7 @@ impl Data {
                 if !self.test_diag.is_empty() {
                     self.test_diag.clone()
                 } else {
-                    self.check.clone()
+                    self.type_diag.clone()
                 }
             }
             Err(d) => d.clone(),
@@ -127,12 +126,12 @@ impl Data {
     }
 }
 
-impl std::default::Default for Data {
+impl std::default::Default for ServerState {
     fn default() -> Self {
         Self {
             text: Default::default(),
             parse: Err(vec![]),
-            check: vec![],
+            type_diag: vec![],
             type_hint: vec![],
             test_hint: vec![],
             test_diag: vec![],
