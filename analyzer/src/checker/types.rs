@@ -1,11 +1,8 @@
 use crate::{
-    ast::{ast::Ast, expression::Expr, node::Node, to_range::ToRange},
+    ast::{ast::Ast, binop::BinOp, expression::Expr, literal::Value, node::Node, to_range::ToRange, unary_op::UnaryOp},
     checker::{function_type::FunctionType, infer_types::InferLen},
     parser::{
-        binop::BinOp,
-        literal::Value,
         span::{Ident, PositionEnd, Span},
-        unary_op::UnaryOp,
         var_type::{InnerVarType, VarType},
     },
 };

@@ -1,12 +1,10 @@
-use crate::{ast::expression::{Expr, Precedence}, parser::{
+use crate::{ast::{binop::BinOp, expression::{Expr, Precedence}, unary_op::UnaryOp}, parser::{
     array::array,
-    binop::BinOp,
     func_call::func_call,
     if_then_else::ifthenelse,
     literal::{identifier, literal},
     span::{LSpan, Span},
     tuple::tuple,
-    unary_op::UnaryOp,
     white_space::ws,
 }};
 use nom::{

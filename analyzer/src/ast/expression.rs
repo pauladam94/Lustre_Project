@@ -1,19 +1,7 @@
-use crate::parser::{
-    array::array,
-    binop::BinOp,
-    func_call::func_call,
-    if_then_else::ifthenelse,
-    literal::{Value, identifier, literal},
-    span::{Ident, LSpan, Span},
-    tuple::tuple,
-    unary_op::UnaryOp,
-    white_space::ws,
+use crate::{
+    ast::{binop::BinOp, literal::Value, unary_op::UnaryOp},
+    parser::span::{Ident, Span},
 };
-use nom::{
-    IResult, branch::alt, bytes::complete::tag, combinator::fail, combinator::map,
-    sequence::delimited,
-};
-use nom_language::precedence::{Assoc, Operation, binary_op, precedence, unary_op};
 
 pub(crate) trait Precedence {
     fn precedence(&self) -> usize;

@@ -1,6 +1,6 @@
 use crate::{
-    ast::{ast::Ast, expression::Expr, node::Node},
-    parser::{binop::BinOp, ftag::Tag, literal::Value, span::Span, var_type::VarType},
+    ast::{ast::Ast, binop::BinOp, expression::Expr, ftag::Tag, literal::Value, node::Node},
+    parser::{span::Span, var_type::VarType},
 };
 use colored::Colorize;
 

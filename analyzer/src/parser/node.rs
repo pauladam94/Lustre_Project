@@ -1,7 +1,7 @@
+use crate::ast::ftag::Tag;
 use crate::ast::node::Node;
 use crate::parser::args::args;
 use crate::parser::equation::equations;
-use crate::parser::ftag::Tag;
 use crate::parser::literal::identifier;
 use crate::parser::span::LSpan;
 use crate::parser::span::Span;

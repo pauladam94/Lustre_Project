@@ -1,9 +1,12 @@
-use crate::{ast::expression::Expr, parser::{
-    expression::expression,
-    literal::{Value, identifier},
-    span::{LSpan, Span},
-    white_space::ws,
-}};
+use crate::{
+    ast::{expression::Expr, literal::Value},
+    parser::{
+        expression::expression,
+        literal::identifier,
+        span::{LSpan, Span},
+        white_space::ws,
+    },
+};
 use nom::{
     IResult, Parser,
     branch::alt,

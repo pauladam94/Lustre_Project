@@ -1,11 +1,7 @@
-use crate::ast::expression::Expr;
-use crate::parser::ftag::Tag;
-use crate::parser::literal::Value;
-use crate::parser::span::Ident;
-use crate::parser::span::PositionEnd;
-use crate::parser::span::Span;
-use crate::parser::var_type::InnerVarType;
-use crate::parser::var_type::VarType;
+use crate::ast::{expression::Expr, ftag::Tag, literal::Value};
+use crate::parser::{
+    span::Ident, span::PositionEnd, span::Span, var_type::InnerVarType, var_type::VarType,
+};
 use lsp_types::Position;
 
 #[derive(Clone, Debug, PartialEq)]

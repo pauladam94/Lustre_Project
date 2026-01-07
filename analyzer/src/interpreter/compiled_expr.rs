@@ -1,6 +1,6 @@
 use crate::{
+    ast::{binop::BinOp, literal::Value, unary_op::UnaryOp},
     interpreter::{expr_index::ExprIndex, instant::Instant},
-    parser::{binop::BinOp, literal::Value, unary_op::UnaryOp},
 };
 
 #[derive(Debug, Clone, PartialEq)]

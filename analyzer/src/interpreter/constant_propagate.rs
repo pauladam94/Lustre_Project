@@ -1,10 +1,7 @@
 use crate::{
-    ast::{ast::Ast, expression::Expr, node::Node},
+    ast::{ast::Ast, expression::Expr, literal::Value, node::Node},
     checker::function_type::{FunctionCallType, FunctionType},
-    parser::{
-        literal::Value,
-        span::{PositionEnd, Span},
-    },
+    parser::span::{PositionEnd, Span},
 };
 use lsp_types::{InlayHint, InlayHintLabel, Position};
 use std::collections::HashMap;
@@ -186,15 +183,11 @@ impl PropagaterConst {
                                 input.push(x[instant].clone())
                             }
 
-                            // eprint!("At instant {instant}, input is : [");
-                            // input.iter().for_each(|x| eprint!("{x}, "));
-                            // eprintln!("]");
-
                             for (i, res) in compile_ast.step(input).into_iter().enumerate() {
                                 if instant == 0 {
                                     array_outputs.push(vec![]);
                                 }
-                                array_outputs[i].push(res)
+                                array_outputs[i].push(res);
                             }
                         }
                         Expr::Lit(Value::tuple_from_vec(

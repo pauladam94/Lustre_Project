@@ -1,8 +1,6 @@
 use crate::{
-    ast::{ast::Ast, expression::Expr, node::Node},
-    parser::{
-        binop::BinOp, ftag::Tag, literal::Value, span::Span, unary_op::UnaryOp, var_type::VarType,
-    },
+    ast::{ast::Ast, binop::BinOp, expression::Expr, ftag::Tag, literal::Value, node::Node, unary_op::UnaryOp},
+    parser::{span::Span, var_type::VarType},
 };
 
 pub(crate) trait Visitor {

@@ -1,6 +1,6 @@
 use crate::{
+    ast::literal::Value,
     interpreter::{compiled_expr::CompiledExpr, expr_index::ExprIndex, instant::Instant},
-    parser::literal::Value,
 };
 
 pub mod schedule;

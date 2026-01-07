@@ -1,4 +1,4 @@
-use crate::{ast::expression::Precedence, interpreter::instant::Instant, parser::literal::Value};
+use crate::{ast::{expression::Precedence, literal::Value}, interpreter::instant::Instant};
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
 pub enum BinOp {
