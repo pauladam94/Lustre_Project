@@ -1,0 +1,10 @@
+node f(x: int, y: int, z: bool) returns (a : int);
+let
+    a = 12;
+tel
+
+node g() returns (x : int);
+let
+    y = f(x, x, f(1));
+    x = f(1 2 y);
+tel

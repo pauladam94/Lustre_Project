@@ -1,0 +1,12 @@
+node time() returns (z : int);
+let
+    z = 0 fby z + 1;
+tel
+
+#[test]
+node test() returns (z: bool);
+let
+    lhs = [1, 2, 3];
+    rhs = time([(), (), (), (), (), ()]);
+    z = lhs == rhs;
+tel

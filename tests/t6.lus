@@ -1,0 +1,17 @@
+node f(i1 : int, i2 : int, i3 : float, i4 : char) returns (f : float);
+let
+    a = x * x;
+    f = 2;
+tel
+
+node otherfunction(i: int, a : int) returns (f: float);
+let b   = x + x;
+c = d;
+tel
+
+node while(i : int) returns (g : int, t : int);
+let
+    a = x * x;
+    f = 2 + 3;
+    t = x + x * y + 2;
+tel

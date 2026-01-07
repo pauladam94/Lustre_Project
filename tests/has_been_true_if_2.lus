@@ -1,0 +1,12 @@
+node hbt_if(i : bool) returns (o: bool);
+let
+    o = if i then true else (false fby o);
+tel
+
+#[test]
+node test() returns (z: bool);
+let
+    lhs = [false, true, true, true, true, true];
+    rhs = hbt_if([false, true, true, false, false, true]);
+    z = lhs == rhs;
+tel

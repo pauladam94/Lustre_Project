@@ -32,8 +32,8 @@ impl std::fmt::Display for CompiledNode {
                 "\t{i:<3} -   {:<width$} >> {} // {:10}",
                 format!("{expr}"),
                 match value {
-                    Some(v) => &format!("{v}"),
-                    None => "None",
+                    Some(v) => format!("{v}"),
+                    None => String::from("None"),
                 },
                 self.infos[i]
             )?;

@@ -1,0 +1,16 @@
+node f(i1 : int, i2 : int, i3 : float, i4 : char) returns (f : float);
+let
+    a = x * x;
+    f = 2;
+tel
+
+node f(i1 : int, i2 : int, i3 : float, i4 : char) returns (f : float);
+let
+    a = x * x;
+    f = 2;
+tel
+node fu(i1 : int, i2 : int) returns (f: float);
+let
+    a = x * x;
+    f = 2;
+tel

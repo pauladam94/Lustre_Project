@@ -1,0 +1,11 @@
+node incr(i : int) returns (o : int);
+let
+    o = i + 1;
+tel
+#[test]
+node test() returns (z : bool);
+let
+    lhs = incr([1, 2, 3, 4, 5]);
+    rhs = [2, 3, 4, 5, 6];
+    z = lhs == rhs;
+tel

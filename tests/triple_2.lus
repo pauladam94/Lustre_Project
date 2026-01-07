@@ -1,0 +1,11 @@
+node triple_and_incr(i : int) returns (o : int);
+let
+    o = 1 + i * 3;
+tel
+#[test]
+node test() returns (z : bool);
+let
+    lhs = triple_and_incr([1, 2, 3]);
+    rhs = [4, 7, 9];
+    z = lhs == rhs;
+tel

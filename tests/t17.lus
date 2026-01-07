@@ -1,0 +1,4 @@
+node f(i : int, i : bool) returns (f: float);
+let
+    a = 1 + 1 + 1 * 1 + 1 + 1 / 1 - abc;
+tel

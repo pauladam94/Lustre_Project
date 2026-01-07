@@ -1,0 +1,6 @@
+node fibo() returns (z : int);
+let
+  x = 1 + pre x;
+  y = 1 fby z;
+  z = x + y;
+tel

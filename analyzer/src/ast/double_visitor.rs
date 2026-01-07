@@ -4,7 +4,7 @@ use crate::{
 };
 use colored::Colorize;
 
-pub(crate) trait DoubleTogetherVisitor {
+pub trait DoubleTogetherVisitor {
     fn visit_bin_op(&mut self, a: &BinOp, b: &BinOp);
     fn visit_span(&mut self, a: &Span, b: &Span);
     fn visit_literal(&mut self, a: &Value, b: &Value);
@@ -18,8 +18,8 @@ pub(crate) trait DoubleTogetherVisitor {
     }
 }
 
-pub(crate) struct ShallowEq {
-    pub(crate) is_equal: bool,
+pub struct ShallowEq {
+    pub is_equal: bool,
 }
 
 impl std::default::Default for ShallowEq {
@@ -44,7 +44,7 @@ impl ShallowEq {
     fn set(&mut self, b: bool) {
         self.is_equal = b;
     }
-    pub(crate) fn is_eq(&self) -> bool {
+    pub fn is_eq(&self) -> bool {
         self.is_equal
     }
 }

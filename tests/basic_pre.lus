@@ -1,0 +1,12 @@
+node f(x: int) returns (z : int);
+let
+    z = 0 -> pre x;
+tel
+
+#[test]
+node test() returns (b: bool);
+let
+    lhs = [0, 1, 2, 3, 4];
+    rhs = f([1, 2, 3, 4, 5]);
+    b = lhs == rhs;
+tel 

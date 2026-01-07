@@ -1,0 +1,12 @@
+node fibo() returns (x : int);
+let
+	x_1 = 1 -> pre x;
+	x_0 = 1 -> pre x_1;
+	x = x_0 + x_1;
+tel
+
+#[test]
+node verify_5_first_value() returns (z : bool);
+let
+	z = fibo([(), (), (), (), ()]) == [3, 3, 5, 8, 13];
+tel

@@ -1,0 +1,5 @@
+node f() returns (x : int);
+let
+    z = 12 / 2;
+    x = (1 + 12) * 23 + z + 23 - 6; 
+tel

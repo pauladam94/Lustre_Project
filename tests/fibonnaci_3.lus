@@ -1,0 +1,14 @@
+node fibo() returns (x : int);
+let
+    x_1 = 1 fby x;
+    x_0 = 1 fby x_1; 
+    x = x_0 + x_1; 
+tel
+
+#[test]
+node verify_5_first_value() returns (z: bool);
+let
+    lhs =  fibo([(), (), (), (), ()]);
+    rhs = [2, 3, 5, 8, 13];
+    z = lhs == rhs;        
+tel

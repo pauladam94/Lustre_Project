@@ -1,0 +1,12 @@
+node id(x, y: int) returns (a, b: int);
+let
+    a = x;
+    b = y;
+tel
+#[test]
+node test() returns (b : bool);
+let
+    lhs = ([1, 2, 3, 4], [2, 4, 6, 8]);
+    rhs = id([1, 2, 3, 4], [2, 4, 6, 8]);
+    b = lhs == rhs;
+tel

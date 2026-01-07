@@ -1,0 +1,4 @@
+node f (a: int) returns ( ) ;
+let
+    x = (y + x);
+tel

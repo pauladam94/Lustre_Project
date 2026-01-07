@@ -1,0 +1,7 @@
+node    fgaaaaaaa () returns       (x : int);
+
+let      x = (1 + 1 * (1 + 1)) / 4; tel
+
+
+node   f   () returns (x : int);
+let x = 2; tel

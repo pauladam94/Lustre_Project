@@ -1,0 +1,10 @@
+node f(x: int) returns(z: int);
+let
+    a = x + 5;
+    z = a + x + 10;
+tel
+node g(y: int) returns (x: bool);
+let
+    a = 11234 + f(y);
+    x = f(2) == f(a);
+tel

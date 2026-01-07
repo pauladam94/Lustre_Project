@@ -1,0 +1,13 @@
+node switch(x, y : int) returns (a, b : int);
+let
+    a = y;
+    b = x;
+tel
+
+#[test]
+node test() returns (z: bool);
+let
+    lhs = ([2, 4, 6, 8], [1, 2, 3, 4]);
+    rhs = switch([1, 2, 3, 4], [2, 4, 6, 8]);
+    z = lhs == rhs;
+tel

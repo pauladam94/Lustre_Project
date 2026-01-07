@@ -1,0 +1,11 @@
+node cst() returns (z: int);
+let
+    z = 12 fby z;
+tel
+#[test]
+node test() returns (z: bool);
+let
+    lhs = cst([(), (), ()]);
+    rhs = [12, 12, 12];
+    z = lhs == rhs;
+tel

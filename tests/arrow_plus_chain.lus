@@ -1,0 +1,5 @@
+node a() returns ();
+let
+	z = 1 -> (1 -> (x0 + x1));
+	z = 1 -> (1 -> (x0 fby x1));
+tel

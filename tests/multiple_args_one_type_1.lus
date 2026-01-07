@@ -1,0 +1,11 @@
+node id(x, y : int) returns (a, b : int);
+let
+    a = x;
+    b = y;
+tel
+
+#[test]
+node test() returns (z: bool);
+let
+    z = has_been_true([false, true, true]) == [false, true, true];        
+tel

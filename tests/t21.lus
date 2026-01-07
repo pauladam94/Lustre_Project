@@ -1,0 +1,4 @@
+node f(x: int) returns(z: int);
+let
+    z = 2 + a;
+tel

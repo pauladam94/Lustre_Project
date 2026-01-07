@@ -1,0 +1,17 @@
+node has_been_true(a : bool) returns (z: bool);
+let
+    z = (false fby z) or a;
+tel
+node hbt_if(i : bool) returns (o: bool);
+let
+    o = false fby if i then true else o;
+tel
+
+#[test]
+node test() returns (z: bool);
+let
+    tab = [false, true, true, false, false];
+    rhs = hbt_if(tab);
+    lhs = has_been_true(tab);
+    z = lhs == rhs;
+tel

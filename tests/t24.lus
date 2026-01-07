@@ -1,0 +1,6 @@
+node f(x: int) returns(z: int, y: bool);
+let
+    a = x + 5;
+    z = a + x + 10;
+    y = true;
+tel

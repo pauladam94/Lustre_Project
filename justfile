@@ -2,9 +2,8 @@ install-lsp:
     cargo install --path lsp
 
 build-to TARGET-TRIPLE FILE:
-    cargo build --target {{TARGET-TRIPLE}} --bin lustrels
-    cp target/{{TARGET-TRIPLE}}/debug/{{FILE}} vscode_extension/server/{{FILE}}
-
+    cargo build --release --target {{TARGET-TRIPLE}} --bin lustrels
+    cp target/{{TARGET-TRIPLE}}/release/{{FILE}} vscode_extension/server/{{FILE}}
 
 build-vscode-extension:
     rm -f vscode_extension/server/*

@@ -52,6 +52,10 @@ tel
 
 ## Release Notes
 
+### 0.2.0
+
+- making it work on the browser
+
 ### 0.1.0
 
 - wasm extension (normally working everywhere)

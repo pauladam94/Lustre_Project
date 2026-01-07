@@ -1,5 +1,3 @@
-mod test;
-
 pub mod compiler;
 
 pub mod constant_propagate;

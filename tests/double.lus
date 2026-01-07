@@ -1,0 +1,12 @@
+node double(x : int) returns (z : int);
+let
+	z = x + x;
+tel
+
+#[test]
+node test() returns (b : bool);
+let
+	lhs = double([1, 2, 3, 12]);
+	rhs = [2, 4, 6, 24];
+	b = lhs == rhs;
+tel

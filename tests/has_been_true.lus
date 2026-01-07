@@ -1,0 +1,11 @@
+node has_been_true(a : bool) returns (z: bool);
+let
+    z = (false fby z) or a;
+tel
+
+#[test]
+node test() returns (z: bool);
+let
+    z = has_been_true([false, true, true, false, false, true]) ==
+                      [false, true, true, true, true, true];        
+tel

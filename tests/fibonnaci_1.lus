@@ -1,0 +1,10 @@
+node fibo() returns (x : int);
+let
+    x = 1 fby x + (1 fby (1 fby x)); 
+tel
+
+#[test]
+node verify_5_first_value() returns (z: bool);
+let
+    z = fibo([(), (), (), (), ()]) == [false, true, true, true, true];        
+tel

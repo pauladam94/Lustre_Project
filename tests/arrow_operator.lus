@@ -1,0 +1,9 @@
+node f() returns (z : int);
+let
+    z = 1 -> pre z;
+tel
+
+node g() returns (z : int);
+let
+    z = 1 -> 2 -> pre z;
+tel

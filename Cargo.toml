@@ -2,3 +2,10 @@
 resolver = "3"
 members = ["analyzer", "lsp", "gui", "cli"]
 
+[profile.release]
+# Automatically strip symbols from the binary.
+strip = true
+opt-level = "z"  # Optimize for size.
+# Enable link-time optimization
+lto = true
+codegen-units=1
