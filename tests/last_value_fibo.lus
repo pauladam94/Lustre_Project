@@ -1,0 +1,11 @@
+node fibo() returns (z: int);
+let
+    x0 = 1 fby z;
+    x1 = 1 fby z;
+    z = x0 + x1;
+tel
+
+node test() returns (z: int);
+let
+    z = fibo(() ^ 4)[-1];
+tel
