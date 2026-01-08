@@ -36,7 +36,7 @@ impl ServerState {
     pub fn update_text(&mut self, s: String) {
         self.text = s;
         self.parse = lustre_parse(&self.text);
-        if let Ok(ast) = &self.parse {
+        if let Ok(ast) = &mut self.parse {
             let (diags, type_hint) = ast.check();
             if diags.is_empty() {
                 let (_, test_hint) = ast.propagate_const();

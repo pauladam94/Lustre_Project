@@ -1,4 +1,7 @@
-use crate::{ast::{expression::Precedence, literal::Value}, interpreter::instant::Instant};
+use crate::{
+    ast::{expression::Precedence, literal::Value},
+    interpreter::instant::Instant,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
 pub enum BinOp {
@@ -27,40 +30,45 @@ impl BinOp {
     pub fn apply(self, lhs: &Value, rhs: &Value, instant: Option<Instant>) -> Option<Value> {
         use BinOp::*;
         use Value::*;
-        match (self, lhs, rhs) {
+        match (lhs, self, rhs) {
             // Singular Values
-            (Add, Int(l), Int(r)) => Some(Int(l + r)),
-            (Add, Float(l), Float(r)) => Some(Float(l + r)),
+            (Int(l), Add, Int(r)) => Some(Int(l + r)),
+            (Float(l), Add, Float(r)) => Some(Float(l + r)),
 
-            (Sub, Int(l), Int(r)) => Some(Int(l - r)),
-            (Sub, Float(l), Float(r)) => Some(Float(l - r)),
+            (Int(l), Sub, Int(r)) => Some(Int(l - r)),
+            (Float(l), Sub, Float(r)) => Some(Float(l - r)),
 
-            (Mult, Int(l), Int(r)) => Some(Int(l * r)),
-            (Mult, Float(l), Float(r)) => Some(Float(l * r)),
+            (Int(l), Mult, Int(r)) => Some(Int(l * r)),
+            (Float(l), Mult, Float(r)) => Some(Float(l * r)),
 
-            (Div, Int(l), Int(r)) => Some(Int(l / r)),
-            (Div, Float(l), Float(r)) => Some(Float(l / r)),
+            (Int(l), Div, Int(r)) => Some(Int(l / r)),
+            (Float(l), Div, Float(r)) => Some(Float(l / r)),
 
-            (Eq, Int(l), Int(r)) => Some(Bool(l == r)),
-            (Eq, Bool(l), Bool(r)) => Some(Bool(l == r)),
-            (Eq, Float(l), Float(r)) => Some(Bool(l == r)),
+            (Int(l), Eq, Int(r)) => Some(Bool(l == r)),
+            (Bool(l), Eq, Bool(r)) => Some(Bool(l == r)),
+            (Float(l), Eq, Float(r)) => Some(Bool(l == r)),
 
-            (Neq, Int(l), Int(r)) => Some(Bool(l != r)),
-            (Neq, Bool(l), Bool(r)) => Some(Bool(l != r)),
-            (Neq, Float(l), Float(r)) => Some(Bool(l != r)),
+            (Int(l), Neq, Int(r)) => Some(Bool(l != r)),
+            (Bool(l), Neq, Bool(r)) => Some(Bool(l != r)),
+            (Float(l), Neq, Float(r)) => Some(Bool(l != r)),
 
-            (Or, Bool(l), Bool(r)) => Some(Bool(*l || *r)),
-            (And, Bool(l), Bool(r)) => Some(Bool(*l && *r)),
+            (Bool(l), Or, Bool(r)) => Some(Bool(*l || *r)),
+            (Bool(l), And, Bool(r)) => Some(Bool(*l && *r)),
 
-            (Fby, _, _) => None, // todo maybe put unreachable!(),
-            (Arrow, _, _) => match instant {
+            (lhs, Caret, Int(r)) => match usize::try_from(*r) {
+                Ok(i) => Some(Array(vec![lhs.clone(); i])),
+                Err(_) => None,
+            },
+
+            (_, Fby, _) => None, // todo maybe put unreachable!(),
+            (_, Arrow, _) => match instant {
                 Some(Instant::Initial) => Some(lhs.clone()),
                 Some(Instant::NonInitial) => Some(rhs.clone()),
                 None => None,
             },
 
             // Tuple && Arrays
-            (Eq | Neq, Tuple(l), Tuple(r)) | (Eq, Array(l), Array(r)) => {
+            (Tuple(l), Eq | Neq, Tuple(r)) | (Array(l), Eq | Neq, Array(r)) => {
                 let mut res = true; // op.apply(Value::Bool(true), Value::Bool(true));
                 for (lv, rv) in l.iter().zip(r.iter()) {
                     if let Some(Value::Bool(b)) = self.apply(lv, rv, instant) {
@@ -69,8 +77,8 @@ impl BinOp {
                 }
                 Some(Bool(res))
             }
-            (Add | Sub | Mult | Div | Or | And, Tuple(l), Tuple(r))
-            | (Add | Sub | Mult | Div | Or | And, Array(l), Array(r)) => {
+            (Tuple(l), Add | Sub | Mult | Div | Or | And, Tuple(r))
+            | (Array(l), Add | Sub | Mult | Div | Or | And, Array(r)) => {
                 let mut res = vec![];
                 for (lv, rv) in l.iter().zip(r.iter()) {
                     res.push(self.apply(lv, rv, instant)?);

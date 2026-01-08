@@ -1,4 +1,7 @@
-use crate::ast::{to_range::ToRange, token_type::TokenType};
+use crate::ast::{
+    to_range::{Merge, ToRange},
+    token_type::TokenType,
+};
 use lsp_types::{Position, Range, SemanticToken};
 use nom_locate::LocatedSpan;
 use std::cmp::Ordering;
@@ -95,6 +98,38 @@ impl ToRange for Span {
                 line: self.line - 1,
                 character: (self.column + self.fragment.len()) as u32 - 1,
             },
+        }
+    }
+}
+
+pub const ZERORANGE: Range = Range {
+    start: Position {
+        line: 0,
+        character: 0,
+    },
+    end: Position {
+        line: 0,
+        character: 0,
+    },
+};
+
+impl Merge for Range {
+    fn merge(self, other: Self) -> Self {
+        if self == ZERORANGE {
+            other
+        } else if other == ZERORANGE {
+            self
+        } else {
+            Range {
+                start: Position {
+                    line: self.start.line.min(other.start.line),
+                    character: self.start.character.min(other.start.character),
+                },
+                end: Position {
+                    line: self.start.line.max(other.start.line),
+                    character: self.start.character.max(other.start.character),
+                },
+            }
         }
     }
 }

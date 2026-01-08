@@ -1,6 +1,6 @@
 use crate::{
     ast::double_visitor::{DoubleTogetherVisitor, ShallowEq},
-    parser::{ast::ast, span::LSpan},
+    parser::{ast::ast, lustre_parser::lustre_parse, span::LSpan},
 };
 use colored::Colorize;
 use serde_derive::{Deserialize, Serialize};
@@ -56,7 +56,7 @@ fn test([lustre_file, json_info]: [&str; 2]) {
 
 pub fn ok_interpretation(input: &str) {
     ok_check(input);
-    let (_, build_ast) = ast(LSpan::new(input)).unwrap();
+    let build_ast = lustre_parse(input).unwrap();
 
     let (const_ast, _) = build_ast.propagate_const();
     println!("{}\n{}", ">> Propagate Constant :".blue(), const_ast);
@@ -70,7 +70,7 @@ pub fn ok_interpretation(input: &str) {
 
 pub fn error_interpretation(input: &str) {
     ok_check(input);
-    let (_, build_ast) = ast(LSpan::new(input)).unwrap();
+    let build_ast = lustre_parse(input).unwrap();
     let (const_ast, _) = build_ast.propagate_const();
     println!("{}\n{}", ">> Propagate Constant :".blue(), const_ast);
 
@@ -86,7 +86,7 @@ pub fn error_interpretation(input: &str) {
 /// - don't have any diagnostic from the type checker
 pub fn ok_check(input: &str) {
     ok_parse(input);
-    let (_, build_ast) = ast(LSpan::new(input)).unwrap();
+    let mut build_ast = lustre_parse(input).unwrap();
 
     let (diags, _) = build_ast.check();
     if !diags.is_empty() {
@@ -103,7 +103,7 @@ pub fn ok_check(input: &str) {
 pub fn error_check(input: &str) {
     ok_parse(input);
     let _ = std::io::stdout().flush();
-    let (_, build_ast) = ast(LSpan::new(input)).unwrap();
+    let mut build_ast = lustre_parse(input).unwrap();
 
     let (diags, _) = build_ast.check();
     if diags.is_empty() {
@@ -150,32 +150,30 @@ pub fn ok_parse(input: &str) {
             passed: false,
         },
     ];
-    let span = LSpan::new(input);
 
-    match ast(span) {
+    match lustre_parse(input) {
         Err(err) => {
             println!("\n{} parsing of \"in\": {:#?}", "FAILED".red(), err);
         }
-        Ok((in_rest, in_parse)) => {
+        Ok(in_parse) => {
             let in_parse_display = format!("{in_parse}");
             tests[0].passed = in_parse_display == input;
 
             println!("{}\n{in_parse}", ">> in | parse :".blue());
-            println!("{}\n{in_rest}", ">> in | parse_rest".purple());
 
-            tests[1].passed = in_rest.fragment().is_empty();
+            // because we are on the ok case
+            // and lustre_parse checks that the rest parse input is empty
+            tests[1].passed = true;
 
-            let span = LSpan::new(&in_parse_display);
-
-            match ast(span) {
+            match lustre_parse(&in_parse_display) {
                 Err(err) => {
                     println!(
-                        "\n{} parsing of \"in | parse | display\": {}",
+                        "\n{} parsing of \"in | parse | display\": {:#?}",
                         "FAILED".red(),
                         err
                     );
                 }
-                Ok((_, in_parse_display_parse)) => {
+                Ok(in_parse_display_parse) => {
                     let mut shallow_eq = ShallowEq::default();
                     shallow_eq.walk(&in_parse, &in_parse_display_parse);
                     tests[2].passed = shallow_eq.is_eq();

@@ -1,11 +1,13 @@
-use crate::ast::{expression::Expr, ftag::Tag, literal::Value};
-use crate::parser::{
-    span::Ident, span::PositionEnd, span::Span, var_type::InnerVarType, var_type::VarType,
+use crate::{
+    ast::{expression::Expr, ftag::Tag, literal::Value},
+    parser::{
+        parsed_node::ParsedNode, span::{Ident, PositionEnd, Span}, var_type::{InnerVarType, VarType}
+    },
 };
 use lsp_types::Position;
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct Node {
+pub struct Node {
     pub(crate) span_node: Span,
     pub(crate) span_returns: Span,
     pub(crate) span_let: Span,
@@ -21,6 +23,42 @@ pub(crate) struct Node {
     pub(crate) span_semicolon_equations: Vec<Span>,
 }
 
+impl From<Node> for ParsedNode {
+    fn from(node: Node) -> Self {
+        let Node {
+            span_node,
+            span_returns,
+            span_let,
+            span_tel,
+            span_semicolon,
+            tag,
+            name,
+            inputs,
+            vars,
+            outputs,
+            let_bindings,
+            span_semicolon_equations,
+        } = node;
+
+        Self {
+            span_node,
+            span_returns,
+            span_let,
+            span_tel,
+            span_semicolon,
+            tag,
+            name,
+            inputs,
+            vars,
+            outputs,
+            let_bindings: let_bindings
+                .into_iter()
+                .map(|(var, expr)| (vec![var], expr))
+                .collect(),
+            span_semicolon_equations,
+        }
+    }
+}
 impl std::fmt::Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if let Some((_, t)) = &self.tag {

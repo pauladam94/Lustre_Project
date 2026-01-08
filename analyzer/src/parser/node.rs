@@ -1,8 +1,8 @@
 use crate::ast::ftag::Tag;
-use crate::ast::node::Node;
 use crate::parser::args::args;
 use crate::parser::equation::equations;
 use crate::parser::literal::identifier;
+use crate::parser::parsed_node::ParsedNode;
 use crate::parser::span::LSpan;
 use crate::parser::span::Span;
 use crate::parser::var_type::InnerVarType;
@@ -16,7 +16,7 @@ use nom::combinator::opt;
 use nom::combinator::recognize;
 use nom::sequence::delimited;
 
-pub(crate) fn node(input: LSpan) -> IResult<LSpan, Node> {
+pub(crate) fn node(input: LSpan) -> IResult<LSpan, ParsedNode> {
     (
         (
             opt(ws(tag("#[test]"))).map(|t| t.map(|s| (Span::new(s), Tag::Test))),
@@ -49,7 +49,7 @@ pub(crate) fn node(input: LSpan) -> IResult<LSpan, Node> {
                 (tag, span_node, name, inputs, span_returns, outputs, span_semicolon),
                 (span_let, (let_bindings, span_semicolon_equations), span_tel),
             )| {
-                Node {
+                ParsedNode {
                     tag,
                     name,
                     vars: vec![],

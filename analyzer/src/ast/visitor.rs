@@ -1,5 +1,8 @@
 use crate::{
-    ast::{ast::Ast, binop::BinOp, expression::Expr, ftag::Tag, literal::Value, node::Node, unary_op::UnaryOp},
+    ast::{
+        ast::Ast, binop::BinOp, expression::Expr, ftag::Tag, literal::Value, node::Node,
+        unary_op::UnaryOp,
+    },
     parser::{span::Span, var_type::VarType},
 };
 
@@ -33,6 +36,10 @@ pub(crate) trait Visitor {
             } => {
                 self.visit_unary_op(op);
                 self.visit_expr(rhs);
+            }
+            Expr::Index { expr, index } => {
+                self.visit_expr(expr);
+                self.visit_expr(index);
             }
             Expr::Array(arr) | Expr::Tuple(arr) => arr.iter().for_each(|x| self.visit_expr(x)),
             Expr::FCall { name, args } => {

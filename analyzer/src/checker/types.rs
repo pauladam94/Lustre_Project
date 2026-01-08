@@ -1,28 +1,49 @@
 use crate::{
-    ast::{ast::Ast, binop::BinOp, expression::Expr, literal::Value, node::Node, to_range::ToRange, unary_op::UnaryOp},
+    ast::{
+        ast::Ast, ast_types::AstTypes, binop::BinOp, expression::Expr, literal::Value, node::Node,
+        to_range::ToRange, unary_op::UnaryOp,
+    },
     checker::{function_type::FunctionType, infer_types::InferLen},
     parser::{
         span::{Ident, PositionEnd, Span},
         var_type::{InnerVarType, VarType},
     },
 };
-use indexmap::IndexMap;
 use lsp_types::{
     Diagnostic, DiagnosticSeverity, InlayHint, InlayHintKind, InlayHintLabel, Position,
 };
-use std::collections::HashMap;
 
-#[derive(Default)]
-struct CheckerInfo {
-    nodes_types: IndexMap<Ident, FunctionType>,
-    local_types: HashMap<Ident, Option<VarType>>,
+struct CheckerInfo<'a> {
+    types: &'a mut AstTypes,
     search_stack: Vec<Span>,
     current_node: Ident,
     diagnostics: Vec<Diagnostic>,
     hints: Vec<InlayHint>,
 }
 
-impl CheckerInfo {
+pub(crate) fn numeral_string(i: usize) -> String {
+    if i == 0 {
+        "1st".to_string()
+    } else {
+        format!("{}nd", i + 1)
+    }
+}
+impl<'a> CheckerInfo<'a> {
+    fn get_node_type(&self) -> Option<VarType> {
+        todo!()
+    }
+    fn get_var_type(&self) -> Option<VarType> {
+        todo!()
+    }
+    fn new(types: &'a mut AstTypes) -> CheckerInfo<'a> {
+        Self {
+            types: types,
+            search_stack: vec![],
+            current_node: Span::default(),
+            diagnostics: vec![],
+            hints: vec![],
+        }
+    }
     fn number_diagnostics(&self) -> usize {
         self.diagnostics.len()
     }
@@ -54,16 +75,7 @@ impl CheckerInfo {
             data: None,
         })
     }
-}
 
-pub(crate) fn numeral_string(i: usize) -> String {
-    if i == 0 {
-        "1st".to_string()
-    } else {
-        format!("{}nd", i + 1)
-    }
-}
-impl CheckerInfo {
     fn get_type_expression(&mut self, node: &Node, expr: &Expr) -> Option<VarType> {
         match expr {
             Expr::BinOp {
@@ -100,7 +112,7 @@ impl CheckerInfo {
                 let lt = self.get_type_expression(node, lhs)?;
                 let rt = self.get_type_expression(node, rhs)?;
                 let message = format!(
-                    "Got type '{}' on the left and '{}' on the right\n but expected to have the same type.",
+                    "Got type '{}' on the left and '{}' on the right but expected to have the same type.",
                     lt, rt
                 );
                 match lt.merge(rt) {
@@ -143,7 +155,7 @@ impl CheckerInfo {
                     Some(rt.remove_one_pre())
                 } else {
                     self.push_diagnostic(Diagnostic {
-                                message: format!("Got type '{}' on the left and '{}' on the right\n but expected to have the same type.", lt, rt),
+                                message: format!("Got type '{}' on the left and '{}' on the right but expected to have the same type.", lt, rt),
                                 severity: Some(DiagnosticSeverity::ERROR),
                                 range: span_op.to_range(),
                                 ..Default::default()
@@ -228,23 +240,44 @@ impl CheckerInfo {
                 let t = self.get_type_expression(node, rhs)?;
                 Some(t)
             }
-            Expr::Variable(s) => match self.local_types.get(s) {
-                // type of variable found
-                Some(Some(t)) => Some(t.clone()),
-                // Type of Variable not found yet
-                Some(None) => self.get_type_var(node, s),
-                // Variable not defined
-                None => {
+            Expr::Variable(s) => self.get_type_var(node, s, false),
+            Expr::Lit(val) => Some(val.get_type()),
+            Expr::Index { expr, index } => {
+                let t_index = self.get_type_expression(node, index)?;
+                if t_index.inner.merge(InnerVarType::Int).is_none() {
                     self.push_diagnostic(Diagnostic {
-                        message: format!("No Equation found for '{}'", s),
+                        message: format!(
+                            "Expected type '{}' but found '{}'.",
+                            InnerVarType::Int,
+                            t_index
+                        ),
                         severity: Some(DiagnosticSeverity::ERROR),
-                        range: s.to_range(),
+                        range: index.to_range(),
                         ..Default::default()
                     });
+                }
+
+                let texpr = self.get_type_expression(node, expr)?;
+
+                if let Some(Value::Int(index_value)) = index.get_value() {
+                    if let Some(t) = &texpr.index(index_value) {
+                        Some(t.clone())
+                    } else {
+                        self.push_diagnostic(Diagnostic {
+                            message: format!(
+                                "Cannot index at value '{}' inside '{}' of type '{}'.",
+                                index_value, expr, texpr
+                            ),
+                            severity: Some(DiagnosticSeverity::ERROR),
+                            range: index.to_range(),
+                            ..Default::default()
+                        });
+                        None
+                    }
+                } else {
                     None
                 }
-            },
-            Expr::Lit(val) => Some(val.get_type()),
+            }
             Expr::Array(arr) => {
                 let mut t0 = None;
                 let mut initialized = true;
@@ -352,13 +385,13 @@ impl CheckerInfo {
             Array,
         }
         let mut call_type = FunctionCallType::Unknown;
-        match self.nodes_types.get(name) {
+        match self.types.get_node_type(name) {
             Some(ft) => {
                 // Arguments types for a Array call
                 let mut args_array_length = None;
                 // Cannot call function defined after the current node
-                let index_current_node = &self.nodes_types.get_index_of(&node.name).unwrap();
-                let index_called_node = &self.nodes_types.get_index_of(name).unwrap();
+                let index_current_node = &self.types.get_nodes_index(&node.name).unwrap();
+                let index_called_node = &self.types.get_nodes_index(name).unwrap();
                 if index_called_node > index_current_node {
                     self.push_diagnostic(Diagnostic {
                         message: format!(
@@ -380,6 +413,7 @@ impl CheckerInfo {
                     return None;
                 }
 
+                // fix for self being immutably borrowed then mutable borrowed
                 let ft = ft.clone();
                 if ft.inputs.len() != args.len() {
                     self.push_diagnostic(Diagnostic {
@@ -536,7 +570,7 @@ impl CheckerInfo {
         });
     }
 
-    fn get_type_var(&mut self, node: &Node, var: &Span) -> Option<VarType> {
+    fn search_type_var(&mut self, node: &Node, var: &Ident) -> Option<VarType> {
         if self.search_stack.contains(var) {
             self.push_diagnostic(Diagnostic {
                 message: format!("Need more type information on {}", var),
@@ -552,7 +586,8 @@ impl CheckerInfo {
         for (name, expr) in node.let_bindings.iter() {
             if name == var {
                 let var_type = self.get_type_expression(node, expr);
-                self.local_types.insert(name.clone(), var_type.clone());
+                self.types
+                    .insert_local_type(&node.name, name.clone(), var_type.clone());
                 self.pop_search();
                 return var_type;
             }
@@ -565,17 +600,39 @@ impl CheckerInfo {
         });
         None
     }
+    fn get_type_var(&mut self, node: &Node, var: &Span, should_search: bool) -> Option<VarType> {
+        if should_search {
+            return self.search_type_var(node, var);
+        }
+        match self.types.get_type_var(&node.name, var) {
+            // Type already computed for this variable
+            Some(Some(t)) => Some(t.clone()),
+            // Variable not yet type checked
+            Some(None) => self.search_type_var(node, var),
+            // Variable not defined
+            None => {
+                self.push_diagnostic(Diagnostic {
+                    message: format!("No Equation found for '{}'", var),
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    range: var.to_range(),
+                    ..Default::default()
+                });
+                None
+            }
+        }
+    }
 
     /// Setup partial Local Type in the Checker
     /// - Check that variables are not defined twice in left of equations
     fn setup_local_types(&mut self, node: &Node) {
         // insert all inputs types
         for (name, t) in node.inputs.iter() {
-            self.local_types.insert(name.clone(), Some(t.clone()));
+            self.types
+                .insert_local_type(&node.name, name.clone(), Some(t.clone()));
         }
 
         for (name, _) in node.let_bindings.iter() {
-            if self.local_types.contains_key(name) {
+            if self.types.contains_key_local_type(&node.name, name) {
                 self.diagnostics.push(Diagnostic {
                     message: format!("Equation for '{}' already defined.", name),
                     severity: Some(DiagnosticSeverity::ERROR),
@@ -583,11 +640,12 @@ impl CheckerInfo {
                     ..Default::default()
                 });
             } else {
-                self.local_types.insert(name.clone(), None);
+                self.types.insert_local_type(&node.name, name.clone(), None);
             }
         }
         for (name, t) in node.outputs.iter() {
-            self.local_types.insert(name.clone(), Some(t.clone()));
+            self.types
+                .insert_local_type(&node.name, name.clone(), Some(t.clone()));
         }
     }
 
@@ -619,6 +677,10 @@ impl CheckerInfo {
                 self.check_cycle_from_expr(node, seen, cond);
                 self.check_cycle_from_expr(node, seen, yes);
                 self.check_cycle_from_expr(node, seen, no);
+            }
+            Expr::Index { expr, index } => {
+                self.check_cycle_from_expr(node, seen, expr);
+                self.check_cycle_from_expr(node, seen, index);
             }
             Expr::Array(exprs)
             | Expr::Tuple(exprs)
@@ -675,7 +737,7 @@ impl CheckerInfo {
 
     fn check_node(&mut self, node: &Node) {
         self.set_current_node(&node.name);
-        self.local_types.clear();
+        // self.local_types.clear();
         self.setup_local_types(node);
 
         let number_diags = self.number_diagnostics();
@@ -686,7 +748,7 @@ impl CheckerInfo {
         }
 
         for (out, t) in node.outputs.iter() {
-            match &self.get_type_var(node, out) {
+            match &self.get_type_var(node, out, true) {
                 Some(t2) => {
                     if t != t2 {
                         self.push_diagnostic(Diagnostic {
@@ -716,13 +778,13 @@ impl CheckerInfo {
     }
 
     // Get the type of each nodes definition
-    fn get_nodes_types(&mut self, x: &Ast) {
-        for node in x.nodes.iter() {
+    fn get_nodes_types(&mut self, nodes: &[Node]) {
+        for node in nodes.iter() {
             let (func, diags) = FunctionType::get_function_type(node);
             for diag in diags {
                 self.push_diagnostic(diag);
             }
-            if self.nodes_types.contains_key(&node.name) {
+            if self.types.node_defined(&node.name) {
                 self.push_diagnostic(Diagnostic {
                     message: format!(
                         "Function name '{}' already defined in this file.",
@@ -734,7 +796,7 @@ impl CheckerInfo {
                 });
                 continue;
             }
-            self.nodes_types.insert(node.name.clone(), func);
+            self.types.insert_node(&node.name, func);
         }
     }
 
@@ -742,7 +804,7 @@ impl CheckerInfo {
     // computed from the type inference
     fn push_type_hint_equation(&mut self, node: &Node) {
         for (var, _) in node.let_bindings.iter() {
-            if let Some(Some(t)) = self.local_types.get(var) {
+            if let Some(t) = self.get_type_var(node, var, false) {
                 self.push_hint(
                     var.position_end(),
                     format!(" : {t}"),
@@ -756,23 +818,24 @@ impl CheckerInfo {
     //
     // The check is modular for every node
     // given the types of all the nodes.
-    fn check_ast(&mut self, ast: &Ast) {
-        self.get_nodes_types(ast);
+    fn check_ast(&mut self, nodes: &[Node]) {
+        self.get_nodes_types(nodes);
 
-        // This is not used for now
-        let mut types_computed = vec![];
-        for node in ast.nodes.iter() {
+        for node in nodes.iter() {
             self.check_node(node);
-            types_computed.push(self.local_types.clone());
             self.push_type_hint_equation(node);
         }
     }
 }
 
 impl Ast {
-    pub fn check(&self) -> (Vec<Diagnostic>, Vec<InlayHint>) {
-        let mut checker = CheckerInfo::default();
-        checker.check_ast(self);
-        (checker.diagnostics, checker.hints)
+    pub fn check(&mut self) -> (Vec<Diagnostic>, Vec<InlayHint>) {
+        let Self { nodes, types } = self;
+        let (diags, hints) = {
+            let mut checker = CheckerInfo::new(types);
+            checker.check_ast(nodes);
+            (checker.diagnostics, checker.hints)
+        };
+        (diags, hints)
     }
 }

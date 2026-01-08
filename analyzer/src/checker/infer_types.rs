@@ -5,12 +5,12 @@ pub enum InferLen {
 }
 
 impl InferLen {
-    pub fn merge(self, other: Self) -> Option<Self> {
+    pub fn merge(&self, other: Self) -> Option<Self> {
         use InferLen::*;
-        match (self, other) {
+        match (self.clone(), other) {
             (Unknown, Unknown) => Some(Unknown),
             (Unknown, Known(len)) | (Known(len), Unknown) => Some(Known(len)),
-            (Known(t1), Known(t2)) if t1 == t2 => Some(Known(t1)),
+            (Known(t1), Known(t2)) if t1 == t2 => Some(Known(t2)),
             _ => None,
         }
     }

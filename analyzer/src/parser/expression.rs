@@ -1,18 +1,26 @@
-use crate::{ast::{binop::BinOp, expression::{Expr, Precedence}, unary_op::UnaryOp}, parser::{
-    array::array,
-    func_call::func_call,
-    if_then_else::ifthenelse,
-    literal::{identifier, literal},
-    span::{LSpan, Span},
-    tuple::tuple,
-    white_space::ws,
-}};
+use crate::{
+    ast::{
+        binop::BinOp,
+        expression::{Expr, Precedence},
+        unary_op::UnaryOp,
+    },
+    parser::{
+        array::array,
+        func_call::func_call,
+        if_then_else::ifthenelse,
+        literal::{identifier, literal},
+        span::{LSpan, Span},
+        tuple::tuple,
+        white_space::ws,
+    },
+};
 use nom::{
     IResult, branch::alt, bytes::complete::tag, combinator::fail, combinator::map,
     sequence::delimited,
 };
 use nom_language::precedence::{Assoc, Operation, binary_op, precedence, unary_op};
 
+// todo parse expr[expr] for index stuff
 pub(crate) fn expression(input: LSpan) -> IResult<LSpan, Expr> {
     use BinOp::*;
 

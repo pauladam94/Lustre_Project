@@ -19,6 +19,10 @@ pub mod test;
 pub mod ast;
 pub mod lustre_parser;
 
+pub mod parsed_ast;
+pub mod parsed_node;
+pub mod flatten;
+
 
 // This is a test
 pub mod tokenize;

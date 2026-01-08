@@ -1,4 +1,5 @@
-use crate::ast::{ast::Ast, to_range::ToRange};
+use crate::ast::ast::Ast;
+use crate::ast::to_range::ToRange;
 use crate::parser::ast::ast;
 use crate::parser::span::LSpan;
 use lsp_types::{Diagnostic, DiagnosticSeverity, Position, Range};
@@ -6,7 +7,29 @@ use lsp_types::{Diagnostic, DiagnosticSeverity, Position, Range};
 /// Parse a given string into a complete AST
 pub fn lustre_parse(input: &str) -> Result<Ast, Vec<Diagnostic>> {
     match ast(LSpan::new(input)) {
-        Ok((_, ast)) => Ok(ast),
+        Ok((rest, ast)) => {
+            if rest.is_empty() {
+                Ok(ast.flatten())
+            } else {
+                Err(vec![Diagnostic {
+                    range: Range {
+                        start: Position {
+                            line: 0,
+                            character: 0,
+                        },
+                        end: Position {
+                            line: 0,
+                            character: 0,
+                        },
+                    },
+                    severity: Some(DiagnosticSeverity::ERROR),
+                    message: format!(
+                        "Parsing Error : \n\"{rest}\" has not been successfuly parsed."
+                    ),
+                    ..Default::default()
+                }])
+            }
+        }
         Err(err) => Err(match err {
             nom::Err::Incomplete(needed) => match needed {
                 nom::Needed::Unknown => {

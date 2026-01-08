@@ -1,5 +1,6 @@
 use crate::{
-    ast::literal::Value, interpreter::{compiled_ast::CompiledNode, compiled_expr::CompiledExpr}
+    ast::literal::Value,
+    interpreter::{compiled_expr::CompiledExpr, compiled_node::CompiledNode},
 };
 use colored::Colorize;
 

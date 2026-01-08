@@ -1,7 +1,10 @@
+use std::ops::Index;
+
 use crate::checker::infer_types::InferLen;
 use crate::parser::literal::integer;
 use crate::parser::span::LSpan;
 use crate::parser::white_space::ws;
+use lsp_types::Diagnostic;
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::combinator::value;
@@ -21,10 +24,10 @@ pub enum InnerVarType {
 }
 
 impl InnerVarType {
-    pub fn merge(self, rhs: Self) -> Option<Self> {
+    pub fn merge(&self, rhs: Self) -> Option<Self> {
         use InnerVarType::*;
         match (self, rhs) {
-            (lhs, rhs) if lhs == rhs => Some(rhs),
+            (lhs, rhs) if lhs == &rhs => Some(rhs),
             (Tuple(l1), Tuple(l2)) => {
                 let mut res = vec![];
                 for (t1, t2) in l1.into_iter().zip(l2.into_iter()) {
@@ -32,8 +35,8 @@ impl InnerVarType {
                 }
                 Some(Tuple(res))
             }
-            (Array { t: t1, len: len1 }, Array { t: t2, len: len2 }) if t1 == t2 => Some(Array {
-                t: t1,
+            (Array { t: t1, len: len1 }, Array { t: t2, len: len2 }) if t1 == &t2 => Some(Array {
+                t: t2,
                 len: len1.merge(len2)?,
             }),
             _ => None,
@@ -45,6 +48,39 @@ impl InnerVarType {
 pub struct VarType {
     pub inner: InnerVarType,
     pub initialized: bool,
+}
+
+impl VarType {
+    pub fn index(&self, index: i64) -> Option<VarType> {
+        use InnerVarType::*;
+        Some(Self {
+            initialized: self.initialized,
+            inner: match &self.inner {
+                Unit | Int | Float | Bool | Char | String => return None,
+                Tuple(inner_var_types) => {
+                    let index = if index > 0 {
+                        index
+                    } else {
+                        inner_var_types.len() as i64 + index
+                    };
+                    match inner_var_types.get(index as usize) {
+                        Some(t) => t.clone(),
+                        None => return None,
+                    }
+                }
+                Array { t, len } => match len {
+                    InferLen::Unknown => return None,
+                    InferLen::Known(len) => {
+                        if index < (*len as i64) && -(*len as i64 + 1) <= index {
+                            t.as_ref().clone()
+                        } else {
+                            return None;
+                        }
+                    }
+                },
+            },
+        })
+    }
 }
 
 impl VarType {

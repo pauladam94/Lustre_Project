@@ -1,6 +1,8 @@
 use crate::{
-    ast::{ast::Ast, binop::BinOp, expression::Expr, node::Node, unary_op::UnaryOp},
-    interpreter::{compiled_ast::CompiledNode, compiled_expr::CompiledExpr, expr_index::ExprIndex},
+    ast::{
+        ast::Ast, binop::BinOp, expression::Expr, literal::Value, node::Node, unary_op::UnaryOp,
+    },
+    interpreter::{compiled_node::CompiledNode, compiled_expr::CompiledExpr, expr_index::ExprIndex},
     parser::span::Span,
 };
 use colored::Colorize;
@@ -130,6 +132,20 @@ impl Compiler {
                             .push_expr(CompiledExpr::UnaryOp { op: *op, rhs: ir }, info.clone())
                     })
                     .collect()
+            }
+            Expr::Index { expr, index } => {
+                let iexpr = self.compile_expr(ast, node, inputs, outputs, vars, expr);
+                if let Some(Value::Int(index_value)) = index.get_value() {
+                    if index_value >= 0 {
+                        // this is safe because of type checking
+                        return vec![iexpr[index_value as usize]];
+                    } else {
+                        // this is safe because of type checking
+                        return vec![iexpr[iexpr.len() + index_value as usize]];
+                    }
+                } else {
+                    panic!("Index value Should be known at compile time",)
+                }
             }
             Expr::Array(exprs) | Expr::Tuple(exprs) => {
                 // Flatten operation : todo check

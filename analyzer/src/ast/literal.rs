@@ -1,5 +1,6 @@
 use crate::ast::to_range::ToRange;
 use crate::checker::infer_types::InferLen;
+use crate::parser::span::ZERORANGE;
 use crate::parser::var_type::InnerVarType;
 use crate::parser::var_type::VarType;
 use lsp_types::Range;
@@ -33,45 +34,47 @@ impl Value {
         Some(res)
     }
 
+    pub fn get_inner_type(&self) -> InnerVarType {
+        match self {
+            Value::Unit => InnerVarType::Unit,
+            Value::Int(_) => InnerVarType::Int,
+            Value::Float(_) => InnerVarType::Float,
+            Value::Bool(_) => InnerVarType::Bool,
+            Value::Tuple(v) => {
+                if v.is_empty() {
+                    InnerVarType::Unit
+                } else {
+                    InnerVarType::Tuple(v.iter().map(|v| v.get_type().inner).collect())
+                }
+            }
+            Value::Array(v) => {
+                let len = InferLen::Known(v.len());
+                // Check more things maybe
+                if v.is_empty() {
+                    InnerVarType::Array {
+                        t: Box::new(InnerVarType::Unit),
+                        len,
+                    }
+                } else {
+                    InnerVarType::Array {
+                        t: Box::new(v[0].get_type().inner),
+                        len,
+                    }
+                }
+            }
+        }
+    }
     pub fn get_type(&self) -> VarType {
         VarType {
             initialized: true,
-            // TODO do a function on InnerVarType directly !
-            inner: match self {
-                Value::Unit => InnerVarType::Unit,
-                Value::Int(_) => InnerVarType::Int,
-                Value::Float(_) => InnerVarType::Float,
-                Value::Bool(_) => InnerVarType::Bool,
-                Value::Tuple(v) => {
-                    if v.is_empty() {
-                        InnerVarType::Unit
-                    } else {
-                        InnerVarType::Tuple(v.iter().map(|v| v.get_type().inner).collect())
-                    }
-                }
-                Value::Array(v) => {
-                    let len = InferLen::Known(v.len());
-                    // Check more things maybe
-                    if v.is_empty() {
-                        InnerVarType::Array {
-                            t: Box::new(InnerVarType::Unit),
-                            len,
-                        }
-                    } else {
-                        InnerVarType::Array {
-                            t: Box::new(v[0].get_type().inner),
-                            len,
-                        }
-                    }
-                }
-            },
+            inner: self.get_inner_type(),
         }
     }
 }
 
 impl ToRange for Value {
     fn to_range(&self) -> Range {
-        todo!()
+        ZERORANGE // todo better
     }
 }
 

@@ -1,16 +1,47 @@
-use crate::{ast::expression::Expr, parser::{
-    expression::expression,
-    literal::identifier,
-    span::{Ident, LSpan, Span},
-    white_space::ws,
-}};
-use nom::{IResult, Parser, bytes::complete::tag, multi::fold, sequence::separated_pair};
+use crate::{
+    ast::expression::Expr,
+    parser::{
+        expression::expression,
+        literal::identifier,
+        span::{Ident, LSpan, Span},
+        white_space::ws,
+    },
+};
+use nom::{
+    IResult, Parser,
+    branch::alt,
+    bytes::complete::tag,
+    combinator::opt,
+    multi::{fold, many0},
+    sequence::{delimited, separated_pair, terminated},
+};
 
-pub(crate) fn equation(input: LSpan) -> IResult<LSpan, (Ident, Expr)> {
-    separated_pair(ws(identifier), ws(tag("=")), ws(expression)).parse(input)
+pub(crate) fn equation(input: LSpan) -> IResult<LSpan, (Vec<Ident>, Expr)> {
+    separated_pair(
+        alt((
+            delimited(
+                ws(tag("(")),
+                (
+                    many0(terminated(identifier, ws(tag(",")))),
+                    opt(ws(identifier)),
+                )
+                    .map(|(mut v, s)| {
+                        if let Some(s) = s {
+                            v.push(s);
+                        }
+                        v
+                    }),
+                ws(tag(")")),
+            ),
+            ws(identifier.map(|ident| vec![ident])),
+        )),
+        ws(tag("=")),
+        ws(expression),
+    )
+    .parse(input)
 }
 
-pub(crate) fn equations(input: LSpan) -> IResult<LSpan, (Vec<(Ident, Expr)>, Vec<Span>)> {
+pub(crate) fn equations(input: LSpan) -> IResult<LSpan, (Vec<(Vec<Ident>, Expr)>, Vec<Span>)> {
     fold(
         0..,
         (ws(equation), ws(tag(";"))),

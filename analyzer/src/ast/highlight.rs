@@ -1,5 +1,7 @@
 use crate::{
-    ast::{ast::Ast, binop::BinOp, node::Node, to_range::ToRange, unary_op::UnaryOp, visitor::Visitor},
+    ast::{
+        ast::Ast, binop::BinOp, node::Node, to_range::ToRange, unary_op::UnaryOp, visitor::Visitor,
+    },
     parser::span::Span,
 };
 use lsp_types::{DocumentHighlight, DocumentHighlightKind, Position};

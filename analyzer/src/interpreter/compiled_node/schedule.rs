@@ -1,5 +1,5 @@
 use crate::interpreter::{
-    compiled_ast::CompiledNode, compiled_expr::CompiledExpr, expr_index::ExprIndex,
+    compiled_node::CompiledNode, compiled_expr::CompiledExpr, expr_index::ExprIndex,
     instant::Instant,
 };
 use colored::Colorize;

@@ -1,6 +1,13 @@
+use lsp_types::{Position, Range};
+
 use crate::{
-    ast::{binop::BinOp, literal::Value, unary_op::UnaryOp},
-    parser::span::{Ident, Span},
+    ast::{
+        binop::BinOp,
+        literal::Value,
+        to_range::{Merge, ToRange},
+        unary_op::UnaryOp,
+    },
+    parser::span::{Ident, Span, ZERORANGE},
 };
 
 pub(crate) trait Precedence {
@@ -9,29 +16,41 @@ pub(crate) trait Precedence {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
+    /// `lhs` `op` `rhs`
     BinOp {
         lhs: Box<Expr>,
         op: BinOp,
         span_op: Span,
         rhs: Box<Expr>,
     },
+    /// `op` `expr`
     UnaryOp {
         op: UnaryOp,
         span_op: Span,
         rhs: Box<Expr>,
     },
+    /// if `cond` then `yes` else `no`
     If {
         cond: Box<Expr>,
         yes: Box<Expr>,
         no: Box<Expr>,
     },
+    /// expr[index]
+    Index {
+        expr: Box<Expr>,
+        index: Box<Expr>,
+    },
+    /// [`e1`, ..., `en`]
     Array(Vec<Expr>),
     Tuple(Vec<Expr>),
+    /// `name`(`arg1`, ..., `argn`)
     FCall {
         name: Ident,
         args: Vec<Expr>,
     },
+    /// `var`
     Variable(Span),
+    /// `val`
     Lit(Value),
 }
 
@@ -141,11 +160,68 @@ impl Expr {
                 no.fmt_parent(f, parent_op)?;
                 write!(f, ")")
             }
+            Expr::Index { expr, index } => {
+                expr.fmt_parent(f, parent_op)?;
+                write!(f, "[")?;
+                index.fmt_parent(f, None)?;
+                write!(f, "]")
+            }
         }
     }
 }
 impl std::fmt::Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.fmt_parent(f, None)
+    }
+}
+
+impl ToRange for Expr {
+    fn to_range(&self) -> Range {
+        match self {
+            Expr::BinOp {
+                lhs,
+                op: _,
+                span_op: _,
+                rhs,
+            } => {
+                let lrange = lhs.to_range();
+                let rrange = rhs.to_range();
+                lrange.merge(rrange)
+            }
+            Expr::UnaryOp {
+                op: _,
+                span_op,
+                rhs,
+            } => {
+                let rrange = rhs.to_range();
+                let op_range = span_op.to_range();
+                rrange.merge(op_range)
+            }
+            Expr::If { cond, yes, no } => {
+                let cond_range = cond.to_range();
+                let yes_range = yes.to_range();
+                let no_range = no.to_range();
+                cond_range.merge(yes_range.merge(no_range))
+            }
+            Expr::Index { expr, index } => expr.to_range().merge(index.to_range()),
+            Expr::Tuple(exprs) | Expr::Array(exprs) => {
+                if exprs.is_empty() {
+                    // todo better by having the span () and [] while parsing
+                    return ZERORANGE;
+                }
+                exprs
+                    .iter()
+                    .fold(None, |acc: Option<Range>, e| match acc {
+                        Some(r) => Some(r.merge(e.to_range())),
+                        None => Some(e.to_range()),
+                    })
+                    .unwrap()
+            }
+            Expr::FCall { name, args } => args
+                .iter()
+                .fold(name.to_range(), |acc, arg| acc.merge(arg.to_range())),
+            Expr::Variable(span) => span.to_range(),
+            Expr::Lit(value) => ZERORANGE, // todo better
+        }
     }
 }

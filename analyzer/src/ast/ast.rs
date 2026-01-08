@@ -1,14 +1,10 @@
-use crate::{
-    ast::{
-        expression::Expr, highlight::DocumentHighlightVisitor, node::Node, semantic_token::SemanticTokenVisitor, visitor::Visitor
-    },
-    parser::span::Span,
-};
 use lsp_types::{DocumentHighlight, Position, Range, SemanticToken, TextEdit};
+use crate::{ast::{ast_types::AstTypes, expression::Expr, highlight::DocumentHighlightVisitor, node::Node, semantic_token::SemanticTokenVisitor, visitor::Visitor}, parser::span::Span};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Ast {
     pub(crate) nodes: Vec<Node>,
+    pub types: AstTypes,
 }
 
 impl std::fmt::Display for Ast {
@@ -33,7 +29,7 @@ impl Default for Ast {
 
 impl Ast {
     pub fn new() -> Self {
-        Self { nodes: vec![] }
+        Self { nodes: vec![], types: AstTypes::new() }
     }
     pub fn hint_last_node_reduced(&self) -> Option<(Position, String)> {
         self.nodes.last().map(|node| node.hint_reduced())
