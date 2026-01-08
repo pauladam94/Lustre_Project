@@ -74,7 +74,7 @@ impl<'a> CheckerInfo<'a> {
         match expr {
             Expr::BinOp {
                 lhs,
-                op: BinOp::Add | BinOp::Sub | BinOp::Div | BinOp::Mult | BinOp::Fby,
+                op: BinOp::Add | BinOp::Sub | BinOp::Div | BinOp::Mult,
                 span_op,
                 rhs,
             } => {
@@ -125,7 +125,7 @@ impl<'a> CheckerInfo<'a> {
             }
             Expr::BinOp {
                 lhs,
-                op: BinOp::Eq | BinOp::Neq,
+                op: BinOp::Eq | BinOp::Neq | BinOp::Fby,
                 span_op,
                 rhs,
             } => {
