@@ -99,6 +99,19 @@ impl Expr {
                     Some(Value::Array(const_exprs))
                 }
             }
+            // todo better
+            // fix this issue in parsing
+            Expr::UnaryOp {
+                op: UnaryOp::Inv,
+                span_op: _,
+                rhs,
+            } => {
+                if let Expr::Lit(Value::Int(i)) = **rhs {
+                    Some(Value::Int(-i))
+                } else {
+                    None
+                }
+            }
             Expr::Lit(lit) => Some(lit.clone()),
             _ => None,
         }

@@ -104,12 +104,12 @@ impl ToRange for Span {
 
 pub const ZERORANGE: Range = Range {
     start: Position {
-        line: 0,
+        line: 1,
         character: 0,
     },
     end: Position {
-        line: 0,
-        character: 0,
+        line: 1,
+        character: 10,
     },
 };
 

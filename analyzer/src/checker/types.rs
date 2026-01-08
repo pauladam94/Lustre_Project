@@ -1,7 +1,13 @@
 use crate::{
     ast::{
-        ast::Ast, ast_types::AstTypes, binop::BinOp, expression::Expr, literal::Value, node::Node,
-        to_range::ToRange, unary_op::UnaryOp,
+        ast::Ast,
+        ast_types::AstTypes,
+        binop::BinOp,
+        expression::Expr,
+        literal::Value,
+        node::Node,
+        to_range::{Merge, ToRange},
+        unary_op::UnaryOp,
     },
     checker::{function_type::FunctionType, infer_types::InferLen},
     parser::{
@@ -243,7 +249,18 @@ impl<'a> CheckerInfo<'a> {
             Expr::Variable(s) => self.get_type_var(node, s, false),
             Expr::Lit(val) => Some(val.get_type()),
             Expr::Index { expr, index } => {
-                let t_index = self.get_type_expression(node, index)?;
+                let t_index = match self.get_type_expression(node, index) {
+                    Some(var_type) => var_type,
+                    None => {
+                        self.push_diagnostic(Diagnostic {
+                            message: format!("Error typing '{}'.", index,),
+                            severity: Some(DiagnosticSeverity::ERROR),
+                            range: index.to_range(),
+                            ..Default::default()
+                        });
+                        return None;
+                    }
+                };
                 if t_index.inner.merge(InnerVarType::Int).is_none() {
                     self.push_diagnostic(Diagnostic {
                         message: format!(
@@ -258,7 +275,18 @@ impl<'a> CheckerInfo<'a> {
                     return None;
                 }
 
-                let texpr = self.get_type_expression(node, expr)?;
+                let texpr = match self.get_type_expression(node, expr) {
+                    Some(var_type) => var_type,
+                    None => {
+                        self.push_diagnostic(Diagnostic {
+                            message: format!("Error typing '{}'", expr),
+                            severity: Some(DiagnosticSeverity::ERROR),
+                            range: expr.to_range(),
+                            ..Default::default()
+                        });
+                        return None;
+                    }
+                };
 
                 if let Some(Value::Int(index_value)) = index.get_value() {
                     if let Some(t) = texpr.index(index_value) {
@@ -270,12 +298,21 @@ impl<'a> CheckerInfo<'a> {
                                 index_value, expr, texpr
                             ),
                             severity: Some(DiagnosticSeverity::ERROR),
-                            // range: expr.to_range.mergeindex.to_range(),
+                            range: expr.to_range().merge(index.to_range()),
                             ..Default::default()
                         });
                         None
                     }
                 } else {
+                    self.push_diagnostic(Diagnostic {
+                        message: format!(
+                            "Cannot index at value inside '{}' of type '{}'.",
+                            expr, texpr
+                        ),
+                        severity: Some(DiagnosticSeverity::ERROR),
+                        range: expr.to_range().merge(index.to_range()),
+                        ..Default::default()
+                    });
                     None
                 }
             }

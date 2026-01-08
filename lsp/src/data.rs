@@ -42,6 +42,7 @@ impl ServerState {
         if let Ok(ast) = &mut self.parse {
             // 2.
             let (diags_1, type_hint_1) = ast.check();
+
             if diags_1.is_empty() {
                 eprintln!(">> Second Round");
                 // 3.
@@ -75,6 +76,7 @@ impl ServerState {
                 self.type_hint = type_hint_2;
                 self.test_hint = test_hint_2;
             } else {
+                eprintln!("\t>> Got {} diags", diags_1.len());
                 self.test_hint.clear();
                 self.type_diag = diags_1;
                 self.type_hint = type_hint_1;

@@ -71,7 +71,7 @@ impl VarType {
                 Array { t, len } => match len {
                     InferLen::Unknown => t.as_ref().clone(),
                     InferLen::Known(len) => {
-                        if index < (*len as i64) && -(*len as i64 + 1) <= index {
+                        if index < (*len as i64) && index + (*len as i64) >= 0  {
                             t.as_ref().clone()
                         } else {
                             return None;
