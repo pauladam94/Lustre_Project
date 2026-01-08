@@ -1,0 +1,19 @@
+node add_2(i0: bool, i1: bool) returns (s1: bool, s0: bool);
+let
+    s1 = i0 and i1;
+    s0 = (i0 and not i1) or (not i0 and i1);
+tel
+
+node add_n(i0: bool^4) returns (s: bool^5);
+let
+    s = i0;
+tel
+
+#[test]
+node test() returns (z: bool);
+let
+    lhs = (true ^ 2, [false, true]);
+    rhs = add_2([true, false], [true, true]);
+    z = lhs == rhs;
+tel
+

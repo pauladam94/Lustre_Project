@@ -33,19 +33,52 @@ impl ServerState {
     /// 1. parsing
     /// 2. type checking
     /// 3. propagate constant of ast
+    /// 4. Type check Again with more information on Ast
+    /// 5. Propagate constant again on Ast
     pub fn update_text(&mut self, s: String) {
         self.text = s;
+        // 1.
         self.parse = lustre_parse(&self.text);
         if let Ok(ast) = &mut self.parse {
-            let (diags, type_hint) = ast.check();
-            if diags.is_empty() {
-                let (_, test_hint) = ast.propagate_const();
-                self.test_hint = test_hint;
+            // 2.
+            let (diags_1, type_hint_1) = ast.check();
+            if diags_1.is_empty() {
+                eprintln!(">> Second Round");
+                // 3.
+                let (mut ast, test_hint_1) = ast.propagate_const();
+                eprintln!(">> 1st Propagate Const:\n{}", ast);
+                // 4.
+                // maybe not ignoring this
+                let (diags_2, mut type_hint_2) = ast.check();
+                // 5.
+                let (ast, mut test_hint_2) = ast.propagate_const();
+                eprintln!(">> 2nd Propagate Const:\n{}", ast);
+                for hint1 in test_hint_1 {
+                    if !test_hint_2
+                        .iter()
+                        .any(|hint2| hint1.position == hint2.position)
+                    {
+                        test_hint_2.push(hint1)
+                    }
+                }
+                eprintln!("TypeHint1: \n{:#?}", type_hint_1);
+                eprintln!("TypeHint1: \n{:#?}", type_hint_2);
+                for hint1 in type_hint_1 {
+                    if !type_hint_2
+                        .iter()
+                        .any(|hint2| hint1.position == hint2.position)
+                    {
+                        type_hint_2.push(hint1)
+                    }
+                }
+                self.type_diag = diags_2;
+                self.type_hint = type_hint_2;
+                self.test_hint = test_hint_2;
             } else {
                 self.test_hint.clear();
+                self.type_diag = diags_1;
+                self.type_hint = type_hint_1;
             }
-            self.type_diag = diags;
-            self.type_hint = type_hint;
         } else {
             self.type_diag.clear();
             self.test_hint.clear();

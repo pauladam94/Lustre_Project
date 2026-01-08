@@ -2,6 +2,7 @@ use crate::{
     ast::{
         binop::BinOp,
         expression::{Expr, Precedence},
+        literal::Value,
         unary_op::UnaryOp,
     },
     parser::{
@@ -15,11 +16,43 @@ use crate::{
     },
 };
 use nom::{
-    IResult, branch::alt, bytes::complete::tag, combinator::fail, combinator::map,
+    IResult, Parser,
+    branch::alt,
+    bytes::complete::tag,
+    combinator::{fail, map, opt, value},
     sequence::delimited,
 };
 use nom_language::precedence::{Assoc, Operation, binary_op, precedence, unary_op};
 
+fn operand(input: LSpan) -> IResult<LSpan, Expr> {
+    map(
+        (
+            alt((
+                // value(Expr::Lit(Value::Unit), (ws(tag("(")), ws(tag(")")))),
+                delimited(ws(tag("(")), ws(expression), ws(tag(")"))),
+                map(array, Expr::Array),
+                map(tuple, Expr::Tuple),
+                map(ifthenelse, |(cond, yes, no)| Expr::If {
+                    cond: Box::new(cond),
+                    yes: Box::new(yes),
+                    no: Box::new(no),
+                }),
+                map(func_call, |(name, args)| Expr::FCall { name, args }),
+                map(ws(literal), Expr::Lit),
+                map(ws(identifier), Expr::Variable),
+            )),
+            opt(delimited(ws(tag("[")), expression, ws(tag("]")))),
+        ),
+        |(expr, i)| match i {
+            Some(index) => Expr::Index {
+                expr: Box::new(expr),
+                index: Box::new(index),
+            },
+            None => expr,
+        },
+    )
+    .parse(input)
+}
 // todo parse expr[expr] for index stuff
 pub(crate) fn expression(input: LSpan) -> IResult<LSpan, Expr> {
     use BinOp::*;
@@ -43,20 +76,9 @@ pub(crate) fn expression(input: LSpan) -> IResult<LSpan, Expr> {
             binary_op(Neq.precedence(), Assoc::Left, ws(tag("!="))),
             binary_op(Or.precedence(), Assoc::Left, ws(tag("or"))),
             binary_op(And.precedence(), Assoc::Left, ws(tag("and"))),
+            binary_op(Caret.precedence(), Assoc::Left, ws(tag("^"))),
         )),
-        alt((
-            delimited(ws(tag("(")), ws(expression), ws(tag(")"))),
-            map(array, Expr::Array),
-            map(tuple, Expr::Tuple),
-            map(ifthenelse, |(cond, yes, no)| Expr::If {
-                cond: Box::new(cond),
-                yes: Box::new(yes),
-                no: Box::new(no),
-            }),
-            map(func_call, |(name, args)| Expr::FCall { name, args }),
-            map(ws(literal), Expr::Lit),
-            map(ws(identifier), Expr::Variable),
-        )),
+        operand,
         |op: Operation<LSpan, LSpan, LSpan, Expr>| {
             use nom_language::precedence::Operation::*;
             match op {
@@ -73,6 +95,7 @@ pub(crate) fn expression(input: LSpan) -> IResult<LSpan, Expr> {
                         "!=" => Neq,
                         "or" => Or,
                         "and" => And,
+                        "^" => Caret,
                         _ => return Err("Non supported binary operation"),
                     };
                     Ok(Expr::BinOp {

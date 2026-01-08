@@ -1,0 +1,21 @@
+node f() returns (z: bool);
+let
+    z = true;
+tel
+
+node two() returns (z: int);
+let
+    z = 2;
+tel
+
+#[test]
+node test() returns (z: bool);
+let 
+    test = two([()]);
+    two_const = test[0];
+    t = (two(() ^ 2))[0];
+    lhs = true ^ t;
+    rhs = f([(), ()]);
+    z = lhs == rhs;
+tel
+

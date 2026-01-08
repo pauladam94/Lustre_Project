@@ -48,13 +48,17 @@ let
 tel
 ```
 
-
-
 ## Release Notes
+
+### 0.3.0
+
+- better contant propagation
+- support caret '^' syntax
+- support index '[_]' syntax
 
 ### 0.2.0
 
-- making it work on the browser
+- working arrays and tuple
 
 ### 0.1.0
 

@@ -69,7 +69,7 @@ impl VarType {
                     }
                 }
                 Array { t, len } => match len {
-                    InferLen::Unknown => return None,
+                    InferLen::Unknown => t.as_ref().clone(),
                     InferLen::Known(len) => {
                         if index < (*len as i64) && -(*len as i64 + 1) <= index {
                             t.as_ref().clone()
@@ -109,11 +109,11 @@ impl VarType {
         self.inner == rhs.inner
     }
 
-    pub fn array_of(self) -> Self {
+    pub fn array_of(self, len: InferLen) -> Self {
         VarType {
             inner: InnerVarType::Array {
                 t: Box::new(self.inner),
-                len: InferLen::Unknown,
+                len,
             },
             initialized: self.initialized,
         }

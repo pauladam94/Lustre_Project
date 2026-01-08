@@ -1,5 +1,5 @@
 use crate::{
-    ast::{ast::Ast, expression::Expr, literal::Value, node::Node},
+    ast::{ast::Ast, binop::BinOp, expression::Expr, literal::Value, node::Node},
     checker::function_type::{FunctionCallType, FunctionType},
     parser::span::{PositionEnd, Span},
 };
@@ -71,13 +71,23 @@ impl PropagaterConst {
                     rhs: Box::new(rhs),
                 };
 
-                let lv = match lhs.get_value() {
-                    Some(v) => v,
-                    None => return fallback(lhs, rhs),
-                };
                 let rv = match rhs.get_value() {
                     Some(v) => v,
                     None => return fallback(lhs, rhs),
+                };
+
+                let lv = match lhs.get_value() {
+                    Some(v) => v,
+                    None => {
+                        if op == &BinOp::Caret
+                            && let Value::Int(i) = rv
+                            && let Ok(i) = usize::try_from(i)
+                        {
+                            return Expr::Array(vec![lhs; i]);
+                        } else {
+                            return fallback(lhs, Expr::Lit(rv));
+                        }
+                    }
                 };
 
                 match op.apply(&lv, &rv, None) {
@@ -201,6 +211,23 @@ impl PropagaterConst {
                 None => expr.clone(),
             },
             Expr::Lit(_) => expr.clone(),
+            Expr::Index { expr, index } => {
+                let expr = self.const_expr(ast, node, expr);
+                let index = self.const_expr(ast, node, index);
+                eprintln!("INDEX = {:#?}", index);
+                eprintln!("INDEX.get_value() = {:#?}", index.get_value());
+                eprintln!("expr = {:#?}", expr);
+                if let Some(Value::Int(i)) = index.get_value()
+                    && let Some(expr_indexed) = expr.index(i)
+                {
+                    return expr_indexed;
+                }
+
+                Expr::Index {
+                    expr: Box::new(expr),
+                    index: Box::new(index),
+                }
+            }
             _ => expr.clone(),
         }
     }
@@ -216,17 +243,7 @@ impl PropagaterConst {
                 let opt_value = match const_expr.get_value() {
                     Some(val) => {
                         let end_semicolon = &node.span_semicolon_equations[i];
-                        let decalage = 5;
-                        self.push_hint(
-                            end_semicolon.position_end(),
-                            format!(
-                                "{:>width$}>> {}",
-                                "",
-                                val,
-                                width = decalage * (end_semicolon.get_column() / decalage + 1)
-                                    - end_semicolon.get_column(),
-                            ),
-                        );
+                        self.push_hint(end_semicolon.position_end(), format!(">> {}", val));
                         Some(val)
                     }
                     None => {
@@ -265,7 +282,7 @@ impl PropagaterConst {
                 }
             }
         }
-        eprintln!("Compiled Node: \n{}\n", self.ast.nodes.last().unwrap());
+        // eprintln!("Compiled Node: \n{}\n", self.ast.nodes.last().unwrap());
         self.reduced_test_hint();
     }
 

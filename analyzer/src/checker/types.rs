@@ -16,7 +16,7 @@ use lsp_types::{
 struct CheckerInfo<'a> {
     types: &'a mut AstTypes,
     search_stack: Vec<Span>,
-    current_node: Ident,
+    // current_node: Ident,
     diagnostics: Vec<Diagnostic>,
     hints: Vec<InlayHint>,
 }
@@ -29,17 +29,11 @@ pub(crate) fn numeral_string(i: usize) -> String {
     }
 }
 impl<'a> CheckerInfo<'a> {
-    fn get_node_type(&self) -> Option<VarType> {
-        todo!()
-    }
-    fn get_var_type(&self) -> Option<VarType> {
-        todo!()
-    }
     fn new(types: &'a mut AstTypes) -> CheckerInfo<'a> {
         Self {
             types: types,
             search_stack: vec![],
-            current_node: Span::default(),
+            // current_node: Span::default(),
             diagnostics: vec![],
             hints: vec![],
         }
@@ -47,9 +41,9 @@ impl<'a> CheckerInfo<'a> {
     fn number_diagnostics(&self) -> usize {
         self.diagnostics.len()
     }
-    fn set_current_node(&mut self, name: &Ident) {
-        self.current_node = name.clone()
-    }
+    // fn set_current_node(&mut self, name: &Ident) {
+    //     self.current_node = name.clone()
+    // }
 
     fn push_new_search(&mut self, var: Span) {
         self.search_stack.push(var)
@@ -175,17 +169,23 @@ impl<'a> CheckerInfo<'a> {
                 if rt.inner != InnerVarType::Int {
                     self.push_diagnostic(Diagnostic {
                         message: format!(
-                            "Expected type `int` on the right of `{}` but go {}.",
+                            "Expected type `int` on the left of '{}' but got '{}'.",
                             op, rt
                         ),
                         severity: Some(DiagnosticSeverity::ERROR),
                         range: span_op.to_range(),
                         ..Default::default()
                     });
-                    None
-                } else {
-                    Some(lt.array_of())
+                    return None;
                 }
+                let len = match rhs.get_value() {
+                    Some(Value::Int(index)) => match usize::try_from(index) {
+                        Ok(i) => InferLen::Known(i),
+                        Err(_) => InferLen::Unknown,
+                    },
+                    _ => InferLen::Unknown,
+                };
+                Some(lt.array_of(len))
             }
             Expr::UnaryOp {
                 op: op @ UnaryOp::Inv,
@@ -255,13 +255,14 @@ impl<'a> CheckerInfo<'a> {
                         range: index.to_range(),
                         ..Default::default()
                     });
+                    return None;
                 }
 
                 let texpr = self.get_type_expression(node, expr)?;
 
                 if let Some(Value::Int(index_value)) = index.get_value() {
-                    if let Some(t) = &texpr.index(index_value) {
-                        Some(t.clone())
+                    if let Some(t) = texpr.index(index_value) {
+                        Some(t)
                     } else {
                         self.push_diagnostic(Diagnostic {
                             message: format!(
@@ -269,7 +270,7 @@ impl<'a> CheckerInfo<'a> {
                                 index_value, expr, texpr
                             ),
                             severity: Some(DiagnosticSeverity::ERROR),
-                            range: index.to_range(),
+                            // range: expr.to_range.mergeindex.to_range(),
                             ..Default::default()
                         });
                         None
@@ -448,7 +449,8 @@ impl<'a> CheckerInfo<'a> {
                                 } else if t.equal_array_of(expected_type) {
                                     call_type = FunctionCallType::Array;
                                     // We now know the length of arrays for this `array` call type.
-                                    args_array_length = Some(t.get_length_array().unwrap());
+                                    // This is not true, we might have to do one more call to propagate const
+                                    args_array_length = Some(t.get_length_array()?);
                                 } else {
                                     self.push_diagnostic(Diagnostic {
                                         message: format!(
@@ -488,8 +490,8 @@ impl<'a> CheckerInfo<'a> {
                                     });
                                     return None;
                                 } else {
-                                    let expected_length = args_array_length.unwrap();
-                                    let given_length = t.get_length_array().unwrap();
+                                    let expected_length = args_array_length?;
+                                    let given_length = t.get_length_array()?;
                                     if given_length != expected_length {
                                         self.push_diagnostic(Diagnostic {
                                             message: format!(
@@ -736,8 +738,7 @@ impl<'a> CheckerInfo<'a> {
     }
 
     fn check_node(&mut self, node: &Node) {
-        self.set_current_node(&node.name);
-        // self.local_types.clear();
+        // self.set_current_node(&node.name);
         self.setup_local_types(node);
 
         let number_diags = self.number_diagnostics();

@@ -55,6 +55,34 @@ pub enum Expr {
 }
 
 impl Expr {
+    pub fn index(&self, index: i64) -> Option<Self> {
+        match self {
+            Expr::Tuple(exprs) | Expr::Array(exprs) => {
+                let len = exprs.len();
+                if index < (len as i64) && index >= 0 {
+                    dbg!("here");
+                    Some(exprs[index as usize].clone())
+                } else if index < 0 && index + (len as i64) > 0 {
+                    Some(exprs[(len as i64 + index) as usize].clone())
+                } else {
+                    None
+                }
+            }
+            Expr::Lit(Value::Tuple(vals)) | Expr::Lit(Value::Array(vals)) => {
+                // todo refactor this duplicate code
+                let len = vals.len();
+                if index < (len as i64) && index >= 0 {
+                    dbg!("here");
+                    Some(Expr::Lit(vals[index as usize].clone()))
+                } else if index < 0 && index + (len as i64) > 0 {
+                    Some(Expr::Lit(vals[(len as i64 + index) as usize].clone()))
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
     pub fn get_value(&self) -> Option<Value> {
         match self {
             Expr::Tuple(exprs) | Expr::Array(exprs) => {
