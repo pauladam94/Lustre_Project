@@ -80,7 +80,7 @@ impl<'a> CheckerInfo<'a> {
         match expr {
             Expr::BinOp {
                 lhs,
-                op: BinOp::Add | BinOp::Sub | BinOp::Div | BinOp::Mult | BinOp::Fby,
+                op: BinOp::Add | BinOp::Sub | BinOp::Div | BinOp::Mult,
                 span_op,
                 rhs,
             } => {
@@ -90,8 +90,34 @@ impl<'a> CheckerInfo<'a> {
                     "Got type '{}' on the left and '{}' on the right\n but expected to have the same type.",
                     lt, rt
                 );
+                let message_type_expected_is_int_or_float = format!(
+                    "Got type '{}' but either type Int or type Float is expected.",
+                    lt
+                );
                 match lt.merge(rt) {
-                    Some(t) => Some(t),
+                    Some(VarType {
+                        initialized: true,
+                        inner: InnerVarType::Float,
+                    }) => Some(VarType {
+                        initialized: true,
+                        inner: InnerVarType::Float,
+                    }),
+                    Some(VarType {
+                        initialized: true,
+                        inner: InnerVarType::Int,
+                    }) => Some(VarType {
+                        initialized: true,
+                        inner: InnerVarType::Int,
+                    }),
+                    Some(_) => {
+                        self.push_diagnostic(Diagnostic {
+                            message: message_type_expected_is_int_or_float,
+                            severity: Some(DiagnosticSeverity::ERROR),
+                            range: span_op.to_range(),
+                            ..Default::default()
+                        });
+                        None
+                    },
                     None => {
                         self.push_diagnostic(Diagnostic {
                             message,
@@ -105,7 +131,7 @@ impl<'a> CheckerInfo<'a> {
             }
             Expr::BinOp {
                 lhs,
-                op: BinOp::Eq | BinOp::Neq | BinOp::Or | BinOp::And,
+                op: BinOp::Eq | BinOp::Neq | BinOp::Fby,
                 span_op,
                 rhs,
             } => {
@@ -120,6 +146,50 @@ impl<'a> CheckerInfo<'a> {
                         initialized: true,
                         inner: InnerVarType::Bool,
                     }),
+                    None => {
+                        self.push_diagnostic(Diagnostic {
+                            message,
+                            severity: Some(DiagnosticSeverity::ERROR),
+                            range: span_op.to_range(),
+                            ..Default::default()
+                        });
+                        None
+                    }
+                }
+            }
+            Expr::BinOp {
+                lhs,
+                op: BinOp::Or | BinOp::And,
+                span_op,
+                rhs,
+            } => {
+                let lt = self.get_type_expression(node, lhs)?;
+                let rt = self.get_type_expression(node, rhs)?;
+                let message = format!(
+                    "Got type '{}' on the left and '{}' on the right but expected to have the same type.",
+                    lt, rt
+                );
+                let message_type_expected_is_bool = format!(
+                    "Got type '{}' but type Bool is expected.",
+                    lt
+                );
+                match lt.merge(rt) {
+                    Some(VarType {
+                        initialized: true,
+                        inner: InnerVarType::Bool,
+                    }) => Some(VarType {
+                        initialized: true,
+                        inner: InnerVarType::Bool,
+                    }),
+                    Some(_) => {
+                        self.push_diagnostic(Diagnostic {
+                            message: message_type_expected_is_bool,
+                            severity: Some(DiagnosticSeverity::ERROR),
+                            range: span_op.to_range(),
+                            ..Default::default()
+                        });
+                        None
+                    }
                     None => {
                         self.push_diagnostic(Diagnostic {
                             message,
