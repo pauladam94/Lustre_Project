@@ -99,7 +99,7 @@ impl<'a> CheckerInfo<'a> {
             }
             Expr::BinOp {
                 lhs,
-                op: BinOp::Eq | BinOp::Neq | BinOp::Or | BinOp::And,
+                op: BinOp::Eq | BinOp::Neq,
                 span_op,
                 rhs,
             } => {
@@ -114,6 +114,50 @@ impl<'a> CheckerInfo<'a> {
                         initialized: true,
                         inner: InnerVarType::Bool,
                     }),
+                    None => {
+                        self.push_diagnostic(Diagnostic {
+                            message,
+                            severity: Some(DiagnosticSeverity::ERROR),
+                            range: span_op.to_range(),
+                            ..Default::default()
+                        });
+                        None
+                    }
+                }
+            }
+            Expr::BinOp {
+                lhs,
+                op: BinOp::Or | BinOp::And,
+                span_op,
+                rhs,
+            } => {
+                let lt = self.get_type_expression(node, lhs)?;
+                let rt = self.get_type_expression(node, rhs)?;
+                let message = format!(
+                    "Got type '{}' on the left and '{}' on the right but expected to have the same type.",
+                    lt, rt
+                );
+                let message_type_expected_is_bool = format!(
+                    "Got type '{}' but type Bool is expected.",
+                    lt
+                );
+                match lt.merge(rt) {
+                    Some(VarType {
+                        initialized: true,
+                        inner: InnerVarType::Bool,
+                    }) => Some(VarType {
+                        initialized: true,
+                        inner: InnerVarType::Bool,
+                    }),
+                    Some(_) => {
+                        self.push_diagnostic(Diagnostic {
+                            message: message_type_expected_is_bool,
+                            severity: Some(DiagnosticSeverity::ERROR),
+                            range: span_op.to_range(),
+                            ..Default::default()
+                        });
+                        None
+                    }
                     None => {
                         self.push_diagnostic(Diagnostic {
                             message,
