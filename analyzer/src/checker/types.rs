@@ -84,8 +84,34 @@ impl<'a> CheckerInfo<'a> {
                     "Got type '{}' on the left and '{}' on the right\n but expected to have the same type.",
                     lt, rt
                 );
+                let message_type_expected_is_int_or_float = format!(
+                    "Got type '{}' but either type Int or type Float is expected.",
+                    lt
+                );
                 match lt.merge(rt) {
-                    Some(t) => Some(t),
+                    Some(VarType {
+                        initialized: true,
+                        inner: InnerVarType::Float,
+                    }) => Some(VarType {
+                        initialized: true,
+                        inner: InnerVarType::Float,
+                    }),
+                    Some(VarType {
+                        initialized: true,
+                        inner: InnerVarType::Int,
+                    }) => Some(VarType {
+                        initialized: true,
+                        inner: InnerVarType::Int,
+                    }),
+                    Some(_) => {
+                        self.push_diagnostic(Diagnostic {
+                            message: message_type_expected_is_int_or_float,
+                            severity: Some(DiagnosticSeverity::ERROR),
+                            range: span_op.to_range(),
+                            ..Default::default()
+                        });
+                        None
+                    },
                     None => {
                         self.push_diagnostic(Diagnostic {
                             message,
