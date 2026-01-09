@@ -1,6 +1,6 @@
 node time() returns (z : int);
 let
-    z = 0 fby z + 1;
+    z = 0 fby (z + 1);
 tel
 
 node time_call() returns (z : int);

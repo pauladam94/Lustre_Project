@@ -117,7 +117,7 @@ impl<'a> CheckerInfo<'a> {
                             ..Default::default()
                         });
                         None
-                    },
+                    }
                     None => {
                         self.push_diagnostic(Diagnostic {
                             message,
@@ -131,7 +131,7 @@ impl<'a> CheckerInfo<'a> {
             }
             Expr::BinOp {
                 lhs,
-                op: BinOp::Eq | BinOp::Neq | BinOp::Fby,
+                op: op @ (BinOp::Eq | BinOp::Neq | BinOp::Fby),
                 span_op,
                 rhs,
             } => {
@@ -142,9 +142,13 @@ impl<'a> CheckerInfo<'a> {
                     lt, rt
                 );
                 match lt.merge(rt) {
-                    Some(_) => Some(VarType {
+                    Some(t) => Some(VarType {
                         initialized: true,
-                        inner: InnerVarType::Bool,
+                        inner: if op == &BinOp::Eq || op == &BinOp::Neq {
+                            InnerVarType::Bool
+                        } else {
+                            t.inner
+                        },
                     }),
                     None => {
                         self.push_diagnostic(Diagnostic {
@@ -169,10 +173,8 @@ impl<'a> CheckerInfo<'a> {
                     "Got type '{}' on the left and '{}' on the right but expected to have the same type.",
                     lt, rt
                 );
-                let message_type_expected_is_bool = format!(
-                    "Got type '{}' but type Bool is expected.",
-                    lt
-                );
+                let message_type_expected_is_bool =
+                    format!("Got type '{}' but type Bool is expected.", lt);
                 match lt.merge(rt) {
                     Some(VarType {
                         initialized: true,
