@@ -1,7 +1,9 @@
 use crate::{
     ast::{expression::Expr, ftag::Tag, literal::Value},
     parser::{
-        parsed_node::ParsedNode, span::{Ident, PositionEnd, Span}, var_type::{InnerVarType, VarType}
+        parsed_node::ParsedNode,
+        span::{Ident, PositionEnd, Span},
+        var_type::{InnerVarType, VarType},
     },
 };
 use lsp_types::Position;

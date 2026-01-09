@@ -1,5 +1,5 @@
 use crate::interpreter::{
-    compiled_node::CompiledNode, compiled_expr::CompiledExpr, expr_index::ExprIndex,
+    compiled_expr::CompiledExpr, compiled_node::CompiledNode, expr_index::ExprIndex,
     instant::Instant,
 };
 use colored::Colorize;
@@ -72,9 +72,7 @@ impl CompiledNode {
         // Modify the
         for pos in 0..exprs.len() {
             match &mut exprs[pos] {
-                Pre { src: index }
-                | UnaryOp { rhs: index, .. }
-                | Variable(index) => {
+                Pre { src: index } | UnaryOp { rhs: index, .. } | Variable(index) => {
                     *index = new_index[*index].unwrap();
                 }
                 BinOp { lhs, op: _, rhs } => {

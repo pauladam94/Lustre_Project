@@ -1,4 +1,7 @@
-use crate::{ast::expression::Expr, parser::{expression::expression, span::LSpan, white_space::ws}};
+use crate::{
+    ast::expression::Expr,
+    parser::{expression::expression, span::LSpan, white_space::ws},
+};
 use nom::{
     IResult, Parser,
     bytes::tag,

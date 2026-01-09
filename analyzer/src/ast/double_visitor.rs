@@ -4,7 +4,7 @@ use crate::{
 };
 use colored::Colorize;
 
-pub (crate) trait DoubleTogetherVisitor {
+pub(crate) trait DoubleTogetherVisitor {
     fn visit_bin_op(&mut self, a: &BinOp, b: &BinOp);
     fn visit_span(&mut self, a: &Span, b: &Span);
     fn visit_literal(&mut self, a: &Value, b: &Value);

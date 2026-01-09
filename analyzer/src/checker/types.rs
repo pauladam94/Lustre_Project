@@ -87,7 +87,7 @@ impl<'a> CheckerInfo<'a> {
                 let lt = self.get_type_expression(node, lhs)?;
                 let rt = self.get_type_expression(node, rhs)?;
                 let message = format!(
-                    "Got type '{}' on the left and '{}' on the right\n but expected to have the same type.",
+                    "Got type '{}' on the left and '{}' on the right but expected to have the same type.",
                     lt, rt
                 );
                 let message_type_expected_is_int_or_float = format!(
@@ -302,11 +302,11 @@ impl<'a> CheckerInfo<'a> {
                     Some(t)
                 } else {
                     self.push_diagnostic(Diagnostic {
-                                message: "Using pre operator on a not initialized value. This cannot be recovered with any other operator.".to_string(),
-                                severity: Some(DiagnosticSeverity::ERROR),
-                                range: span_op.to_range(),
-                                ..Default::default()
-                            });
+                        message: "Using pre operator on a not initialized value. This cannot be recovered with any other operator.".to_string(),
+                        severity: Some(DiagnosticSeverity::ERROR),
+                        range: span_op.to_range(),
+                        ..Default::default()
+                    });
                     None
                 }
             }
@@ -321,18 +321,7 @@ impl<'a> CheckerInfo<'a> {
             Expr::Variable(s) => self.get_type_var(node, s, false),
             Expr::Lit(val) => Some(val.get_type()),
             Expr::Index { expr, index } => {
-                let t_index = match self.get_type_expression(node, index) {
-                    Some(var_type) => var_type,
-                    None => {
-                        self.push_diagnostic(Diagnostic {
-                            message: format!("Error typing '{}'.", index,),
-                            severity: Some(DiagnosticSeverity::ERROR),
-                            range: index.to_range(),
-                            ..Default::default()
-                        });
-                        return None;
-                    }
-                };
+                let t_index = self.get_type_expression(node, index)?;
                 if t_index.inner.merge(InnerVarType::Int).is_none() {
                     self.push_diagnostic(Diagnostic {
                         message: format!(
@@ -347,18 +336,7 @@ impl<'a> CheckerInfo<'a> {
                     return None;
                 }
 
-                let texpr = match self.get_type_expression(node, expr) {
-                    Some(var_type) => var_type,
-                    None => {
-                        self.push_diagnostic(Diagnostic {
-                            message: format!("Error typing '{}'", expr),
-                            severity: Some(DiagnosticSeverity::ERROR),
-                            range: expr.to_range(),
-                            ..Default::default()
-                        });
-                        return None;
-                    }
-                };
+                let texpr = self.get_type_expression(node, expr)?;
 
                 if let Some(Value::Int(index_value)) = index.get_value() {
                     if let Some(t) = texpr.index(index_value) {

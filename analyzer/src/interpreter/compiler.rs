@@ -2,7 +2,9 @@ use crate::{
     ast::{
         ast::Ast, binop::BinOp, expression::Expr, literal::Value, node::Node, unary_op::UnaryOp,
     },
-    interpreter::{compiled_node::CompiledNode, compiled_expr::CompiledExpr, expr_index::ExprIndex},
+    interpreter::{
+        compiled_expr::CompiledExpr, compiled_node::CompiledNode, expr_index::ExprIndex,
+    },
     parser::span::Span,
 };
 use colored::Colorize;

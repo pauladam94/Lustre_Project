@@ -1,10 +1,13 @@
-use crate::{ast::{ast::Ast, ast_types::AstTypes, expression::Expr, literal::Value, node::Node}, parser::{parsed_ast::ParsedAst, parsed_node::ParsedNode}};
+use crate::{
+    ast::{ast::Ast, ast_types::AstTypes, expression::Expr, literal::Value, node::Node},
+    parser::{parsed_ast::ParsedAst, parsed_node::ParsedNode},
+};
 
 impl ParsedAst {
     pub fn flatten(self) -> Ast {
         Ast {
             nodes: self.nodes.into_iter().map(|node| node.flatten()).collect(),
-            types: AstTypes::default()
+            types: AstTypes::default(),
         }
     }
 }
