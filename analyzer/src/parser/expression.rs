@@ -101,7 +101,7 @@ pub(crate) fn expression(input: LSpan) -> IResult<LSpan, Expr> {
                     Ok(Expr::BinOp {
                         lhs: Box::new(lhs),
                         op: bin_op,
-                        span_op: Span::new(op),
+                        span_op: Span::from_lspan(op),
                         rhs: Box::new(rhs),
                     })
                 }
@@ -115,7 +115,7 @@ pub(crate) fn expression(input: LSpan) -> IResult<LSpan, Expr> {
                     };
                     Ok(Expr::UnaryOp {
                         op: unary_op,
-                        span_op: Span::new(op),
+                        span_op: Span::from_lspan(op),
                         rhs: Box::new(rhs),
                     })
                 }

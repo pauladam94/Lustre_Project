@@ -1,0 +1,5 @@
+node fibo() returns(z: int);
+let
+    z = 1 + 1.5;
+tel
+

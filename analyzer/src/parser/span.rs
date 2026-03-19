@@ -160,7 +160,15 @@ impl Span {
 }
 
 impl Span {
-    pub fn new(input: LSpan) -> Self {
+    pub fn new(column: usize, line: u32, fragment: String) -> Self {
+        Self {
+            column,
+            line,
+            fragment,
+        }
+    }
+
+    pub fn from_lspan(input: LSpan) -> Self {
         Self {
             column: input.get_column(),
             line: input.location_line(),

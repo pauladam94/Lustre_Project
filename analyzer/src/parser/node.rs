@@ -19,13 +19,13 @@ use nom::sequence::delimited;
 pub(crate) fn node(input: LSpan) -> IResult<LSpan, ParsedNode> {
     (
         (
-            opt(ws(tag("#[test]"))).map(|t| t.map(|s| (Span::new(s), Tag::Test))),
-            ws(tag("node").map(|s| Span::new(s))),
+            opt(ws(tag("#[test]"))).map(|t| t.map(|s| (Span::from_lspan(s), Tag::Test))),
+            ws(tag("node").map(|s| Span::from_lspan(s))),
             ws(identifier),
             alt((
                 recognize((ws(tag("(")), ws(tag(")")))).map(|paren| {
                     vec![(
-                        Span::new(paren),
+                        Span::from_lspan(paren),
                         VarType {
                             initialized: true,
                             inner: InnerVarType::Unit,
@@ -34,14 +34,14 @@ pub(crate) fn node(input: LSpan) -> IResult<LSpan, ParsedNode> {
                 }),
                 delimited(ws(tag("(")), ws(args), ws(tag(")"))),
             )),
-            ws(tag("returns").map(|s| Span::new(s))),
+            ws(tag("returns").map(|s| Span::from_lspan(s))),
             delimited(ws(tag("(")), ws(args), ws(tag(")"))),
-            ws(tag(";")).map(|s| Span::new(s)),
+            ws(tag(";")).map(|s| Span::from_lspan(s)),
         ),
         (
-            ws(tag("let").map(|s| Span::new(s))),
+            ws(tag("let").map(|s| Span::from_lspan(s))),
             ws(equations),
-            ws(tag("tel").map(|s| Span::new(s))),
+            ws(tag("tel").map(|s| Span::from_lspan(s))),
         ),
     )
         .map(

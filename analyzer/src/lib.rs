@@ -1,4 +1,4 @@
-// #![feature(array_try_map)]
+#![feature(array_try_map)]
 
 pub mod ast;
 pub mod checker;

@@ -13,7 +13,7 @@ As an inlay hint right next to the `#[test]` we have information
 that the test function have passed or not.
 
 ```lustre
-node fibonacci() returns (z: int);
+node fibonaci() returns (z: int);
 let
   x0 = 0 fby z;
   x1 = 1 fby x0;
@@ -24,7 +24,7 @@ tel
 node test() returns (z: bool);
 let
   lhs = [1, 1, 2, 3, 5, 8];
-  rhs = fibo([(), (), (), (), (), ()]);
+  rhs = fibonaci(() ^ 6); 
   z = lhs == rhs;
 tel 
 ```
@@ -50,6 +50,12 @@ tel
 
 ## Release Notes
 
+### 0.4.0
+
+- better typing error
+- bool + int not accepted anymore
+- fix of ..[-1]
+
 ### 0.3.0
 
 - better contant propagation
@@ -70,5 +76,5 @@ tel
 
 ### 0.0.1
 
-Just testing some stuff.
+- testing some stuff.
 

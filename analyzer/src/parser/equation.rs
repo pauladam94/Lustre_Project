@@ -48,7 +48,7 @@ pub(crate) fn equations(input: LSpan) -> IResult<LSpan, (Vec<(Vec<Ident>, Expr)>
         || (Vec::new(), Vec::new()),
         |(mut acc, mut acc_span), ((name, expr), semi_colon_span)| {
             acc.push((name, expr));
-            acc_span.push(Span::new(semi_colon_span));
+            acc_span.push(Span::from_lspan(semi_colon_span));
             (acc, acc_span)
         },
     )

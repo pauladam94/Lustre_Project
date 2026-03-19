@@ -27,7 +27,7 @@ pub(crate) fn identifier(input: LSpan) -> IResult<LSpan, Span> {
         alt((alpha1, tag("_"))),
         many0_count(alt((alphanumeric1, tag("_")))),
     ))
-    .map(|s| Span::new(s))
+    .map(|s| Span::from_lspan(s))
     .parse(input)
 }
 
